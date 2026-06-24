@@ -1,0 +1,16 @@
+{
+  "name": "TOEFL Lernapp – Mannheim Master in Management",
+  "short_name": "TOEFL Lernen",
+  "description": "Übungs-App für das neue TOEFL-iBT-Format (ab 2026) – Ziel: ≥100/120 (C1) für den Mannheim Master in Management.",
+  "lang": "de",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f6f9",
+  "theme_color": "#1f3a5f",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

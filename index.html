@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f3a5f">
+<title>TOEFL Lernapp – Mannheim Master in Management</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --navy:#1f3a5f; --navy2:#2c5282; --accent:#2a9d8f; --bg:#f4f6f9; --card:#ffffff;
+  --txt:#1d2733; --muted:#5b6b7d; --line:#e2e8f0; --ok:#2e7d4f; --okbg:#e6f4ec;
+  --bad:#c0392b; --badbg:#fbeae8; --warnbg:#fff6e5; --warn:#8a6d3b; --shadow:0 1px 3px rgba(0,0,0,.08),0 6px 18px rgba(0,0,0,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--txt);line-height:1.55;-webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px 96px}
+header.app{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:18px 16px;box-shadow:var(--shadow);position:sticky;top:0;z-index:20}
+header.app .wrap{padding-bottom:0}
+header.app h1{font-size:18px;margin:0 0 2px;font-weight:700;letter-spacing:.2px}
+header.app p{margin:0;font-size:12.5px;opacity:.9}
+.bar{height:8px;background:rgba(255,255,255,.25);border-radius:6px;margin-top:10px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent);width:0;transition:width .4s}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:11px 16px;font-size:15px;font-weight:600;cursor:pointer;text-decoration:none;transition:transform .05s,background .2s}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--navy);border:1.5px solid var(--line)}
+.btn.accent{background:var(--accent)}
+.btn.sm{padding:7px 12px;font-size:13px;border-radius:8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:14px 0;box-shadow:var(--shadow)}
+.card h2{margin:0 0 6px;font-size:19px}
+.card h3{margin:18px 0 6px;font-size:15.5px;color:var(--navy)}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.pill{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;background:#eef2f7;color:var(--navy2);margin-left:6px;vertical-align:middle}
+.grid{display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:560px){.grid.two{grid-template-columns:1fr 1fr}}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow);cursor:pointer;text-align:left;transition:transform .06s,border-color .2s}
+.tile:hover{border-color:var(--navy2)}
+.tile:active{transform:translateY(1px)}
+.tile .t{font-weight:700;font-size:16px;margin-bottom:2px;color:var(--navy)}
+.tile .d{font-size:13px;color:var(--muted)}
+.tile .st{font-size:12px;margin-top:8px;font-weight:600}
+.tile .st.done{color:var(--ok)}
+.back{background:none;border:none;color:var(--navy);font-weight:600;font-size:14px;cursor:pointer;padding:14px 0 4px;display:inline-flex;gap:6px;align-items:center}
+.q{margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:#fcfdff}
+.q .qt{font-weight:600;margin-bottom:8px}
+.opt{display:block;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;margin:7px 0;cursor:pointer;background:#fff;font-size:14.5px}
+.opt:hover{border-color:var(--navy2)}
+.opt.sel{border-color:var(--navy);background:#eef3fb}
+.opt.correct{border-color:var(--ok);background:var(--okbg)}
+.opt.wrong{border-color:var(--bad);background:var(--badbg)}
+.opt input{margin-right:9px}
+.expl{margin-top:8px;font-size:13.5px;padding:10px;border-radius:8px;background:var(--okbg);border:1px solid #cfe8d8;display:none}
+.expl.show{display:block}
+.result{font-weight:700;font-size:16px;padding:12px;border-radius:10px;margin-top:12px;text-align:center}
+.result.good{background:var(--okbg);color:var(--ok)}
+.result.mid{background:var(--warnbg);color:var(--warn)}
+.result.low{background:var(--badbg);color:var(--bad)}
+input[type=text],textarea{width:100%;font-family:inherit;font-size:15px;padding:10px;border:1.5px solid var(--line);border-radius:9px;background:#fff;color:var(--txt)}
+textarea{min-height:170px;resize:vertical;line-height:1.5}
+.blank{display:inline-block;width:120px;margin:0 2px;padding:4px 6px;font-size:14px;border:1.5px solid var(--navy2);border-radius:7px}
+.blank.ok{border-color:var(--ok);background:var(--okbg)}
+.blank.no{border-color:var(--bad);background:var(--badbg)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.chip{display:inline-block;background:#eef3fb;border:1.5px solid var(--line);border-radius:9px;padding:7px 11px;font-size:14.5px;cursor:pointer;user-select:none}
+.chip:hover{border-color:var(--navy2)}
+.chip.used{opacity:.35;pointer-events:none}
+.answerbox{min-height:46px;border:1.5px dashed var(--line);border-radius:10px;padding:8px;margin-top:8px;display:flex;flex-wrap:wrap;gap:7px;background:#fff}
+.answerbox .chip{background:#fff;border-color:var(--navy2)}
+.timer{font-variant-numeric:tabular-nums;font-weight:700;font-size:18px;color:var(--navy)}
+.timer.warn{color:var(--bad)}
+.flash{min-height:150px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:18px;border:1px solid var(--line);border-radius:14px;background:#fcfdff}
+.flash .w{font-size:26px;font-weight:800;color:var(--navy)}
+.flash .ex{font-size:14px;color:var(--muted);margin-top:8px;font-style:italic}
+.flash .de{font-size:20px;font-weight:700;color:var(--accent);margin-top:14px;display:none}
+.flash .de.show{display:block}
+.counter{font-size:13px;color:var(--muted);text-align:center;margin-top:6px}
+.note{font-size:12.5px;color:var(--muted);background:var(--warnbg);border:1px solid #f0e0bf;border-radius:9px;padding:9px 11px;margin:10px 0}
+.audiobtn{font-size:15px}
+.rubric{font-size:13.5px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:12px}
+.rubric li{margin:3px 0}
+.model{font-size:14px;background:var(--okbg);border:1px solid #cfe8d8;border-radius:10px;padding:12px;margin-top:10px;white-space:pre-wrap;display:none}
+.model.show{display:block}
+.check{display:flex;gap:9px;align-items:flex-start;font-size:14px;margin:6px 0}
+.check input{margin-top:3px;width:18px;height:18px;flex:none}
+.kpi{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
+.kpi .b{flex:1;min-width:120px;background:#f7f9fc;border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+.kpi .b .n{font-size:24px;font-weight:800;color:var(--navy)}
+.kpi .b .l{font-size:12px;color:var(--muted)}
+footer{text-align:center;font-size:12px;color:var(--muted);padding:24px 0}
+.hidden{display:none!important}
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.steps button{flex:1;min-width:64px;font-size:12px;padding:8px 4px;border:1.5px solid var(--line);background:#fff;border-radius:9px;cursor:pointer;color:var(--navy2);font-weight:600}
+.steps button.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.steps button.done{border-color:var(--ok);color:var(--ok)}
+</style>
+</head>
+<body>
+<header class="app">
+  <div class="wrap">
+    <h1>TOEFL iBT Lernapp <span class="pill">Format 2026</span></h1>
+    <p>Ziel: ≥ 100 / 120 Punkte (C1) – Mannheim Master in Management</p>
+    <div class="bar"><i id="globalbar"></i></div>
+  </div>
+</header>
+
+<div class="wrap" id="app"></div>
+
+<footer>
+  Fokussiertes Übungstool – kein offizielles ETS-Material. Aufgabentypen dem offiziellen TOEFL-iBT-Format (ab 21.01.2026) nachgebildet.<br>
+  Fortschritt wird lokal im Browser gespeichert.
+</footer>
+
+<script>
+/* ============================================================
+   TOEFL Lernapp – Daten & Logik (eine Datei, datengetrieben)
+   ============================================================ */
+
+/* ---------- INHALTE ---------- */
+const CONTENT = {
+  reading: {
+    completeWords: {
+      title: "Complete the Words",
+      intro: "Ergänze die fehlenden Wörter. Der erste Buchstabe ist vorgegeben.",
+      // text mit {} = Lücke; answers = erwartete Wörter (case-insensitive)
+      text: "Effective time {management} is essential for graduate students. By setting clear {priorities} and breaking large tasks into smaller steps, students can reduce {stress} and meet deadlines. A realistic {schedule} also helps to balance coursework with personal {responsibilities}.",
+      answers: ["management","priorities","stress","schedule","responsibilities"]
+    },
+    dailyLife: {
+      title: "Read in Daily Life",
+      passage: "NOTICE — University Library\n\nFrom 1 July, the Main Library will open from 8:00 a.m. to 10:00 p.m. on weekdays and from 10:00 a.m. to 6:00 p.m. on weekends. Group study rooms on the second floor must be booked online at least 24 hours in advance and may be used for a maximum of three hours. Students who fail to cancel an unused booking twice will lose booking rights for one month. Printing credit can be topped up at the machine near the entrance.",
+      questions: [
+        {q:"How long can a group study room be used at most?", options:["Two hours","Three hours","Twenty-four hours","All day"], answer:1, explain:"„may be used for a maximum of three hours."},
+        {q:"What happens after failing to cancel an unused booking twice?", options:["A fine must be paid","Booking rights are lost for one month","The room is closed","Nothing happens"], answer:1, explain:"„will lose booking rights for one month."},
+        {q:"When does the library close on weekends?", options:["6:00 p.m.","8:00 p.m.","10:00 p.m.","It is closed"], answer:0, explain:"Weekends: 10:00 a.m. to 6:00 p.m."},
+        {q:"Where can printing credit be added?", options:["Online","On the second floor","At the machine near the entrance","At the help desk"], answer:2, explain:"„at the machine near the entrance."}
+      ]
+    },
+    academic: {
+      title: "Read an Academic Passage",
+      passage: "The Urban Heat Island Effect\n\n[1] Cities are typically several degrees warmer than the surrounding countryside, a phenomenon known as the urban heat island effect. Dark surfaces such as asphalt and rooftops absorb solar radiation during the day and release it slowly at night, keeping urban temperatures elevated. [2] The dense concentration of buildings also limits airflow, while waste heat from vehicles and air conditioning adds further warmth. [3] As a result, residents of large cities often experience hotter nights and higher energy demand for cooling. [4] Planners have proposed several remedies, including planting trees, installing reflective \"cool\" roofs, and creating green corridors that channel cooler air into the city center. Although no single measure eliminates the effect, a combination of strategies can meaningfully reduce peak temperatures.",
+      questions: [
+        {type:"Factual", q:"According to the passage, why do urban temperatures stay high at night?", options:["Trees release stored heat","Dark surfaces release absorbed radiation slowly","The countryside warms the city","Air conditioning cools the streets"], answer:1, explain:"Factual: dark surfaces „release it slowly at night."},
+        {type:"Negative Factual", q:"All of the following are mentioned as causes EXCEPT:", options:["Waste heat from vehicles","Limited airflow between buildings","Heat from air conditioning","Increased rainfall over cities"], answer:3, explain:"Negative Factual: Niederschlag wird nicht genannt; die anderen drei schon."},
+        {type:"Vocabulary", q:"The word \"remedies\" in the passage is closest in meaning to:", options:["solutions","dangers","measurements","delays"], answer:0, explain:"Vocabulary-in-Context: „remedies“ = Lösungen/Abhilfen."},
+        {type:"Inference", q:"It can be inferred that a single measure alone:", options:["fully solves the problem","is illegal in most cities","is not sufficient on its own","increases temperatures"], answer:2, explain:"Inference: „no single measure eliminates the effect“ → eines allein reicht nicht."},
+        {type:"Sentence Insertion", q:"Where would this sentence best fit? → \"This trapped heat is one reason the effect is strongest after sunset.\"", options:["After [1]","After [2]","After [3]","After [4]"], answer:0, explain:"Sentence Insertion: bezieht sich auf das langsame Abgeben der Wärme aus [1]."},
+        {type:"Prose Summary", q:"Which sentence best states the main idea?", options:["Cities should ban all vehicles.","Urban areas are warmer than rural ones, and combined strategies can reduce the effect.","Trees are the only solution to heat.","Air conditioning cools entire cities."], answer:1, explain:"Prose Summary: Hauptaussage = Städte sind wärmer; kombinierte Maßnahmen helfen."}
+      ]
+    }
+  },
+
+  listening: {
+    chooseResponse: {
+      title: "Listen and Choose a Response",
+      intro: "Höre die Äußerung und wähle die passendste Antwort.",
+      items: [
+        {audio:"Excuse me, do you know where the lecture on macroeconomics is being held?", options:["Yes, it's in Room B6, just down the hall.","I studied economics last year.","The lecture was very interesting."], answer:0, explain:"Auf eine Wegfrage passt die Ortsangabe."},
+        {audio:"I'm afraid I won't be able to finish the group report by Friday.", options:["Congratulations on finishing early!","No problem, let's ask for an extension together.","I don't have a report."], answer:1, explain:"Reaktion auf ein Problem: gemeinsame Lösung anbieten."},
+        {audio:"Would you mind if I joined your study group this week?", options:["Not at all, you're welcome to join us.","I minded the gap.","The group is on the third floor yesterday."], answer:0, explain:"„Would you mind…“ → höfliche Zustimmung."}
+      ]
+    },
+    conversation: {
+      title: "Listen to a Conversation",
+      intro: "Ein Gespräch zwischen einer Studentin und einem Mitarbeiter des Prüfungsamts.",
+      script: "Student: Hi, I wanted to ask about registering for the management exam next semester. Staff: Sure. Registration opens on the first of November and closes two weeks later. Student: Do I need to register for each course separately? Staff: Yes, every exam has its own registration. And remember, if you register but don't show up, it counts as a failed attempt. Student: Oh, that's important to know. Can I deregister if I change my mind? Staff: You can, up to one week before the exam date, online.",
+      questions: [
+        {q:"What is the main purpose of the conversation?", options:["To complain about a grade","To ask how exam registration works","To book a study room","To pay tuition fees"], answer:1, explain:"Hauptzweck: Ablauf der Prüfungsanmeldung."},
+        {q:"What happens if a student registers but does not attend?", options:["Nothing","It counts as a failed attempt","They get a refund","They must re-register"], answer:1, explain:"„it counts as a failed attempt."},
+        {q:"Until when can a student deregister?", options:["One week before the exam","On the exam day","Two weeks after the exam","Never"], answer:0, explain:"„up to one week before the exam date."}
+      ]
+    },
+    announcement: {
+      title: "Listen to an Announcement",
+      intro: "Eine Durchsage auf dem Campus.",
+      script: "Attention, please. Due to scheduled maintenance, the main elevator in the business school building will be out of service this Thursday from 9 a.m. to 2 p.m. Please use the elevators in the east wing or the staircases. Lectures on the upper floors will take place as usual. We apologize for any inconvenience.",
+      questions: [
+        {q:"Why is the elevator out of service?", options:["A power outage","Scheduled maintenance","An accident","A fire drill"], answer:1, explain:"„Due to scheduled maintenance."},
+        {q:"What are people advised to do?", options:["Stay home","Use the east-wing elevators or stairs","Cancel their lectures","Wait until 2 p.m. only"], answer:1, explain:"„use the elevators in the east wing or the staircases."}
+      ]
+    },
+    talk: {
+      title: "Listen to an Academic Talk",
+      intro: "Ein kurzer Vorlesungsausschnitt.",
+      script: "In today's session we'll look at the concept of opportunity cost. Opportunity cost is the value of the next best alternative that you give up when you make a choice. For example, if a company invests its capital in a new factory, the opportunity cost is the return it could have earned by investing that money elsewhere, say in bonds. The key point is that opportunity cost is not always about money; it can also involve time. Choosing to spend an evening studying means giving up the leisure you could have enjoyed instead.",
+      questions: [
+        {q:"What is the main topic of the talk?", options:["How to build a factory","The concept of opportunity cost","Investing in bonds","Time management"], answer:1, explain:"Thema: opportunity cost."},
+        {q:"According to the speaker, opportunity cost is:", options:["always measured in money","the value of the next best alternative given up","the total cost of a project","a type of tax"], answer:1, explain:"Definition wörtlich genannt."},
+        {q:"Which example illustrates a non-monetary opportunity cost?", options:["Investing in a factory","Buying bonds","Giving up leisure to study","Paying interest"], answer:2, explain:"Lernen am Abend = Verzicht auf Freizeit (nicht-monetär)."}
+      ]
+    }
+  },
+
+  speaking: {
+    listenRepeat: {
+      title: "Listen and Repeat",
+      intro: "Höre den Satz, drücke auf Aufnahme und sprich ihn exakt nach. (Bewertung über Spracherkennung – am besten in Chrome.)",
+      sentences: [
+        "The seminar begins at nine o'clock on Monday morning.",
+        "She submitted her application before the official deadline.",
+        "International students must register for each course online.",
+        "Our professor explained the theory with several clear examples.",
+        "The library extends its opening hours during the exam period.",
+        "Effective communication is essential for successful teamwork.",
+        "He analysed the data carefully before drawing any conclusions."
+      ]
+    },
+    interview: {
+      title: "Take an Interview",
+      intro: "Beantworte die Interviewfragen mündlich. Nimm dich auf, höre dir die Antwort an und bewerte dich mit der Checkliste. Eine Musterantwort findest du darunter.",
+      prompts: [
+        {q:"Tell me about a subject you enjoyed studying and why.",
+         model:"One subject I really enjoyed was statistics. At first it seemed quite abstract, but I gradually realised how useful it is for making decisions based on real data. I liked that every problem had a clear, logical solution, and I found it satisfying to interpret results and explain them to others."},
+        {q:"What do you think are the advantages of studying abroad?",
+         model:"Studying abroad has several advantages. First, you improve your language skills much faster because you use the language every day. Second, you experience a different academic culture, which broadens your perspective. Finally, living independently in a new country builds confidence and makes you more adaptable."},
+        {q:"Describe a goal you would like to achieve in the next few years.",
+         model:"In the next few years I would like to complete a master's degree in management and gain practical experience through an internship abroad. My long-term goal is to work in international project management, so I want to strengthen both my analytical skills and my ability to work with people from different backgrounds."},
+        {q:"Do you prefer working in a team or working alone? Why?",
+         model:"It depends on the task, but generally I prefer working in a team. Different people bring different ideas, and discussing problems usually leads to better solutions. That said, for tasks that require deep concentration, such as writing or detailed analysis, I find that working alone is more efficient."}
+      ],
+      checklist: ["Habe ich klar und ohne lange Pausen gesprochen?","Habe ich die Frage direkt beantwortet?","Habe ich ein Beispiel oder einen Grund genannt?","War die Aussprache verständlich?","Habe ich Verbindungswörter benutzt (first, because, however)?"]
+    }
+  },
+
+  writing: {
+    buildSentence: {
+      title: "Build a Sentence",
+      intro: "Klicke die Wörter in die richtige Reihenfolge.",
+      items: [
+        "The deadline for the application is next Friday.",
+        "She has been studying management for two years.",
+        "Many students prefer to live close to the campus.",
+        "If the weather improves, we will hold the event outside.",
+        "The professor asked us to submit the report online.",
+        "Reducing energy consumption can lower monthly costs."
+      ]
+    },
+    email: {
+      title: "Write an Email",
+      intro: "Schreibe eine kurze, angemessene E-Mail (ca. 7 Minuten). Ziel: ~80–120 Wörter, klare Struktur, höflicher Ton.",
+      timer: 7*60,
+      prompts: [
+        {q:"You missed an important lecture because you were ill. Write an email to your professor: apologise, explain briefly, and ask what you can do to catch up.",
+         model:"Dear Professor Müller,\n\nI am writing to apologise for missing yesterday's lecture on strategic management. Unfortunately, I was unwell and unable to attend. I would be very grateful if you could let me know whether the slides are available online and what topics I should review. If there is any additional material or a task I missed, I am happy to complete it. Thank you very much for your understanding.\n\nKind regards,\nMaria Schmidt"},
+        {q:"Your study group needs to reschedule a meeting. Write an email to the other members: explain why, suggest a new time, and ask for confirmation.",
+         model:"Hi everyone,\n\nI hope you are all doing well. Unfortunately, I have a conflict with our meeting on Wednesday afternoon. Would it be possible to move it to Thursday at 4 p.m. in the library instead? That time should still give us enough time to finish the presentation before the deadline. Please let me know if this works for you, or suggest another time if it does not. Thanks a lot, and see you soon!\n\nBest,\nJonas"}
+      ]
+    },
+    discussion: {
+      title: "Write for an Academic Discussion",
+      intro: "Reagiere wie in einem Online-Diskussionsforum (ca. 10 Minuten). Ziel: ≥ 100 Wörter, eigene Meinung + Begründung + Beispiel, Bezug auf die Frage.",
+      timer: 10*60,
+      prompts: [
+        {q:"Professor: \"Some people believe universities should focus mainly on practical skills that prepare students for jobs. Others think the main goal should be broad academic knowledge. What is your view?\"",
+         model:"In my opinion, universities should balance both, but if I had to choose, I would lean towards broad academic knowledge. Practical skills are important, yet they often become outdated as technologies and job requirements change. A strong foundation in analytical thinking and theory, by contrast, allows graduates to adapt to new situations throughout their careers. For example, a manager who understands the principles of economics can apply them to industries that did not even exist when they studied. That said, universities should still include internships and projects so that students can connect theory to real practice."},
+        {q:"Professor: \"Online learning has become very common. Do you think online courses are as effective as traditional classroom courses? Why or why not?\"",
+         model:"I think online courses can be just as effective as classroom courses, but only under certain conditions. The main advantage is flexibility: students can learn at their own pace and review recordings whenever they need to. However, online learning requires strong self-discipline, and it can reduce the spontaneous discussion that happens in a physical classroom. In my experience, a blended approach works best — online lectures for content delivery combined with in-person sessions for discussion and group work. This way, students benefit from both flexibility and meaningful interaction."}
+      ],
+    }
+  },
+
+  vocab: [
+    ["analyse","analysieren","We need to analyse the results carefully."],
+    ["approach","Ansatz / sich nähern","Her approach to the problem was very systematic."],
+    ["assess","beurteilen, bewerten","The committee will assess each application individually."],
+    ["assume","annehmen, vermuten","Let's not assume the data is correct without checking."],
+    ["benefit","Nutzen, profitieren","Students benefit from regular feedback."],
+    ["concept","Konzept, Begriff","The concept of supply and demand is fundamental."],
+    ["consequence","Folge, Konsequenz","Every decision has consequences."],
+    ["consistent","beständig, konsequent","Her results were consistent across all tests."],
+    ["constitute","darstellen, bilden","These factors constitute a serious risk."],
+    ["contribute","beitragen","Each member contributed to the final report."],
+    ["crucial","entscheidend","Time management is crucial during exams."],
+    ["demonstrate","zeigen, nachweisen","The study demonstrates a clear trend."],
+    ["derive","ableiten, gewinnen","We can derive the formula from these principles."],
+    ["distinguish","unterscheiden","It is hard to distinguish the two theories."],
+    ["emphasise","betonen","The professor emphasised the importance of evidence."],
+    ["estimate","schätzen, Schätzung","Experts estimate a 10% increase next year."],
+    ["evaluate","bewerten, einschätzen","Please evaluate the strengths and weaknesses."],
+    ["evident","offensichtlich","It was evident that she had prepared well."],
+    ["explicit","ausdrücklich, deutlich","The instructions were explicit and clear."],
+    ["framework","Rahmen, Bezugssystem","We used a theoretical framework for the analysis."],
+    ["fundamental","grundlegend","Trust is fundamental to teamwork."],
+    ["generate","erzeugen, generieren","The model generates accurate predictions."],
+    ["hypothesis","Hypothese","The experiment tested a simple hypothesis."],
+    ["implement","umsetzen, einführen","The company implemented a new policy."],
+    ["implication","Auswirkung, Implikation","Consider the implications of this choice."],
+    ["indicate","hinweisen, anzeigen","The figures indicate steady growth."],
+    ["inevitable","unvermeidlich","Some delay was inevitable."],
+    ["interpret","interpretieren, deuten","How do you interpret these results?"],
+    ["justify","rechtfertigen, begründen","Can you justify this expense?"],
+    ["maintain","aufrechterhalten, behaupten","It is hard to maintain such high standards."],
+    ["objective","Ziel; objektiv","Our main objective is to reduce costs."],
+    ["obtain","erlangen, bekommen","She obtained excellent grades."],
+    ["occur","auftreten, geschehen","Errors can occur during data entry."],
+    ["perceive","wahrnehmen","Customers perceive the brand as reliable."],
+    ["phenomenon","Phänomen, Erscheinung","This is a well-known economic phenomenon."],
+    ["potential","Potenzial; möglich","The plan has great potential."],
+    ["precise","präzise, genau","We need precise measurements."],
+    ["predict","vorhersagen","It is difficult to predict the market."],
+    ["principle","Prinzip, Grundsatz","She acted on principle."],
+    ["prior","vorherig, vorausgehend","No prior experience is required."],
+    ["procedure","Verfahren, Vorgehen","Follow the standard procedure."],
+    ["prohibit","verbieten","Smoking is prohibited on campus."],
+    ["promote","fördern","The program promotes innovation."],
+    ["random","zufällig","We selected a random sample."],
+    ["range","Bereich, Spanne","Prices vary over a wide range."],
+    ["reinforce","verstärken","The data reinforce our conclusion."],
+    ["reluctant","widerwillig, zögernd","He was reluctant to change his plan."],
+    ["require","erfordern, verlangen","The course requires weekly assignments."],
+    ["reveal","enthüllen, zeigen","The survey revealed surprising results."],
+    ["significant","bedeutend, erheblich","There was a significant improvement."],
+    ["subsequent","nachfolgend","Subsequent chapters explain the method."],
+    ["sufficient","ausreichend","We have sufficient data to decide."],
+    ["sustain","aufrechterhalten, tragen","Such growth is hard to sustain."],
+    ["tendency","Tendenz, Neigung","There is a tendency to overestimate risk."],
+    ["thereby","dadurch, somit","Costs fell, thereby raising profit."],
+    ["thorough","gründlich","She gave a thorough explanation."],
+    ["transition","Übergang","The transition to digital was smooth."],
+    ["undertake","unternehmen, übernehmen","They undertook a major study."],
+    ["valid","gültig, stichhaltig","That is a valid argument."],
+    ["vary","variieren, sich unterscheiden","Opinions vary widely on this topic."],
+    ["accurate","genau, zutreffend","The forecast was surprisingly accurate."],
+    ["adequate","angemessen, ausreichend","The funding was barely adequate."],
+    ["allocate","zuteilen, zuweisen","We must allocate resources wisely."],
+    ["ambiguous","mehrdeutig, unklar","The wording was ambiguous."],
+    ["anticipate","erwarten, vorhersehen","We anticipate strong demand."],
+    ["coherent","zusammenhängend, schlüssig","Write a coherent argument."],
+    ["compelling","überzeugend, zwingend","She made a compelling case."],
+    ["comprehensive","umfassend","The report is comprehensive."],
+    ["constraint","Einschränkung, Zwang","Time was the main constraint."],
+    ["diverse","vielfältig, unterschiedlich","Mannheim attracts a diverse student body."],
+    ["enhance","verbessern, steigern","Feedback enhances learning."],
+    ["facilitate","erleichtern, fördern","The app facilitates self-study."],
+    ["feasible","machbar, durchführbar","The plan is technically feasible."],
+    ["initiate","einleiten, beginnen","They initiated a new project."],
+    ["integrate","integrieren, einbinden","We integrated the two systems."],
+    ["mutual","gegenseitig","The decision was based on mutual respect."],
+    ["notion","Vorstellung, Begriff","The notion that money buys happiness is debated."],
+    ["prominent","prominent, bedeutend","She is a prominent researcher."],
+    ["rigorous","streng, gründlich","The method is rigorous and reliable."],
+    ["substantial","erheblich, beträchtlich","There was a substantial difference."],
+    ["viable","tragfähig, realisierbar","We need a viable alternative."],
+    ["acquire","erwerben, erlangen","She acquired fluent English abroad."],
+    ["adapt","anpassen, sich anpassen","Firms must adapt to new markets."],
+    ["advocate","befürworten; Befürworter","He advocates a cautious approach."],
+    ["aggregate","Gesamtmenge; aggregieren","We looked at the aggregate demand."],
+    ["allege","behaupten (unbewiesen)","The report alleges serious misconduct."],
+    ["ambitious","ehrgeizig","The plan is ambitious but realistic."],
+    ["analogy","Analogie, Vergleich","She explained it by analogy."],
+    ["annual","jährlich","The annual report is published in March."],
+    ["apparent","offenbar, scheinbar","For no apparent reason, sales dropped."],
+    ["appropriate","angemessen, passend","Choose an appropriate method."],
+    ["arbitrary","willkürlich","The choice seemed completely arbitrary."],
+    ["attain","erreichen, erlangen","Few students attain that score."],
+    ["attribute","zuschreiben; Merkmal","They attribute the success to teamwork."],
+    ["authentic","echt, authentisch","The data must be authentic."],
+    ["autonomy","Autonomie, Selbstständigkeit","The region was granted autonomy."],
+    ["bias","Voreingenommenheit, Verzerrung","We must control for bias in the sample."],
+    ["capacity","Kapazität, Fassungsvermögen","The hall has a capacity of 300."],
+    ["category","Kategorie","Each item falls into one category."],
+    ["cease","aufhören, einstellen","Production ceased last year."],
+    ["clarify","klären, verdeutlichen","Let me clarify the instructions."],
+    ["coincide","zusammenfallen, übereinstimmen","The dates coincide with the holidays."],
+    ["collapse","zusammenbrechen; Zusammenbruch","The market collapsed overnight."],
+    ["commence","beginnen","The course commences in October."],
+    ["commodity","Ware, Rohstoff","Oil is a global commodity."],
+    ["compile","zusammenstellen","She compiled the data into a report."],
+    ["complement","ergänzen; Ergänzung","The two methods complement each other."],
+    ["comply","einhalten, befolgen","All firms must comply with the rules."],
+    ["component","Bestandteil, Komponente","Each component was tested separately."],
+    ["comprise","umfassen, bestehen aus","The team comprises five experts."],
+    ["conceive","sich vorstellen, entwerfen","It is hard to conceive of such scale."],
+    ["confine","beschränken, einschließen","The study was confined to one city."],
+    ["conform","sich anpassen, entsprechen","Products must conform to standards."],
+    ["consent","Zustimmung; zustimmen","Participants gave written consent."],
+    ["considerable","beträchtlich, erheblich","There was considerable interest."],
+    ["consolidate","festigen, zusammenführen","The firm consolidated its position."],
+    ["consult","konsultieren, nachschlagen","Consult the manual for details."],
+    ["consumer","Verbraucher","Consumer spending rose sharply."],
+    ["contemporary","zeitgenössisch, heutig","She studies contemporary economics."],
+    ["context","Kontext, Zusammenhang","Words depend on their context."],
+    ["contradict","widersprechen","The results contradict the theory."],
+    ["controversy","Kontroverse, Streit","The plan caused much controversy."],
+    ["conventional","herkömmlich, konventionell","They used conventional methods."],
+    ["convey","vermitteln, übermitteln","The chart conveys the trend clearly."],
+    ["correspond","entsprechen; korrespondieren","The figures correspond to our model."],
+    ["criteria","Kriterien","The selection criteria are strict."],
+    ["currency","Währung","The local currency lost value."],
+    ["deduce","ableiten, schließen","We can deduce the cause from the data."],
+    ["deficit","Defizit, Fehlbetrag","The budget deficit grew last year."],
+    ["denote","bezeichnen, bedeuten","The symbol denotes a constant."],
+    ["deviate","abweichen","Results should not deviate from the norm."],
+    ["devise","entwickeln, ersinnen","They devised a clever solution."],
+    ["differentiate","unterscheiden","It is hard to differentiate the brands."],
+    ["dimension","Dimension, Aspekt","Consider the ethical dimension."],
+    ["diminish","verringern, abnehmen","Returns diminish over time."],
+    ["discrete","einzeln, abgegrenzt","The process has discrete stages."],
+    ["dispute","Streit; bestreiten","They disputed the final figure."],
+    ["distort","verzerren","Outliers can distort the average."],
+    ["domain","Bereich, Domäne","That falls outside our domain."],
+    ["dominate","beherrschen, dominieren","One firm dominates the market."],
+    ["dynamic","dynamisch","The market is highly dynamic."],
+    ["elaborate","ausführen; kompliziert","Could you elaborate on that point?"],
+    ["eligible","berechtigt, geeignet","Are you eligible for the scholarship?"],
+    ["eliminate","beseitigen, ausschließen","We aim to eliminate the error."],
+    ["emerge","auftauchen, hervorgehen","A clear pattern emerged."],
+    ["empirical","empirisch, erfahrungsbasiert","The claim lacks empirical support."],
+    ["encounter","begegnen; Begegnung","We encountered several problems."],
+    ["endure","ertragen, überdauern","The brand has endured for decades."],
+    ["equivalent","gleichwertig; Äquivalent","One euro is roughly equivalent to a dollar."],
+    ["establish","gründen, feststellen","The study established a clear link."],
+    ["ethical","ethisch","The research raises ethical questions."],
+    ["exceed","übersteigen, überschreiten","Costs must not exceed the budget."],
+    ["exclude","ausschließen","We excluded incomplete responses."],
+    ["exhibit","zeigen, aufweisen","The sample exhibits unusual behaviour."],
+    ["expand","ausweiten, expandieren","The company plans to expand abroad."],
+    ["expertise","Fachwissen, Expertise","She brings deep expertise."],
+    ["exploit","ausnutzen, nutzen","They exploited a gap in the market."],
+    ["expose","aussetzen, aufdecken","The audit exposed the error."],
+    ["external","extern, äußerlich","External factors affected the result."],
+    ["extract","entnehmen; Auszug","We extracted the key figures."],
+    ["feature","Merkmal; aufweisen","A key feature is its simplicity."],
+    ["finite","endlich, begrenzt","Resources are finite."],
+    ["fluctuate","schwanken","Prices fluctuate with demand."],
+    ["foster","fördern, begünstigen","Good leaders foster trust."],
+    ["function","Funktion; funktionieren","The tool serves a clear function."],
+    ["grant","gewähren; Zuschuss","The bank granted the loan."],
+    ["guarantee","garantieren; Garantie","No method can guarantee success."],
+    ["hierarchy","Hierarchie, Rangordnung","The firm has a flat hierarchy."],
+    ["highlight","hervorheben; Höhepunkt","The report highlights three risks."],
+    ["identical","identisch","The two samples were identical."],
+    ["ideology","Ideologie","Their decisions reflect an ideology."],
+    ["illustrate","veranschaulichen","This example illustrates the point."],
+    ["impose","auferlegen, verhängen","New taxes were imposed."],
+    ["incentive","Anreiz","Bonuses act as an incentive."],
+    ["incorporate","einbeziehen, aufnehmen","We incorporated their feedback."],
+    ["incur","sich zuziehen, verursachen","The firm incurred heavy losses."],
+    ["inherent","innewohnend, inhärent","Risk is inherent in investing."],
+    ["inhibit","hemmen, hindern","Fear can inhibit learning."],
+    ["innovate","innovieren, erneuern","Firms must innovate to survive."],
+    ["insight","Einblick, Erkenntnis","The study offers useful insight."],
+    ["instance","Beispiel, Fall","For instance, consider this case."],
+    ["integral","wesentlich, integral","Feedback is integral to the process."],
+    ["intense","intensiv, stark","There was intense competition."],
+    ["intervene","eingreifen, intervenieren","The state had to intervene."],
+    ["intrinsic","intrinsisch, innewohnend","She has intrinsic motivation."],
+    ["isolate","isolieren, trennen","We isolated the main cause."],
+    ["liable","haftbar; anfällig","The firm is liable for damages."],
+    ["margin","Marge, Spanne, Rand","Profit margins are shrinking."],
+    ["minimal","minimal, gering","The impact was minimal."],
+    ["modify","ändern, modifizieren","We modified the original design."],
+    ["monitor","überwachen; Monitor","We monitor progress weekly."],
+    ["negligible","vernachlässigbar","The difference was negligible."],
+    ["nevertheless","dennoch, trotzdem","It was risky; nevertheless, they tried."],
+    ["norm","Norm, Regel","Remote work is now the norm."],
+    ["nuance","Nuance, feiner Unterschied","The argument has many nuances."],
+    ["oblige","verpflichten, zwingen","Rules oblige us to report."],
+    ["obscure","unklar; verdunkeln","The cause remains obscure."],
+    ["offset","ausgleichen, kompensieren","Savings offset the higher cost."],
+    ["ongoing","laufend, andauernd","The project is ongoing."],
+    ["optimal","optimal, bestmöglich","We seek the optimal solution."],
+    ["outcome","Ergebnis, Resultat","The outcome was positive."],
+    ["overlap","überschneiden; Überschneidung","The two roles overlap."],
+    ["paradigm","Paradigma, Denkmuster","This marks a paradigm shift."],
+    ["parameter","Parameter, Rahmenwert","Set the model parameters first."],
+    ["partial","teilweise, partiell","We have only partial data."],
+    ["persist","fortbestehen, beharren","The problem persists."],
+    ["plausible","plausibel, glaubhaft","That is a plausible explanation."],
+    ["portion","Anteil, Teil","A large portion was unused."],
+    ["pose","darstellen, aufwerfen","This poses a serious risk."],
+    ["precede","vorausgehen","A short test precedes the exam."],
+    ["predominant","vorherrschend","English is the predominant language."],
+    ["preliminary","vorläufig, einleitend","These are preliminary results."],
+    ["presume","vermuten, annehmen","I presume the data are correct."],
+    ["prevail","sich durchsetzen, vorherrschen","Common sense will prevail."],
+    ["prevalent","verbreitet, vorherrschend","The practice is widely prevalent."],
+    ["proportion","Anteil, Verhältnis","A high proportion agreed."],
+    ["prospect","Aussicht, Perspektive","The job prospects are good."],
+    ["provoke","hervorrufen, provozieren","The change provoked criticism."],
+    ["pursue","verfolgen, anstreben","She wants to pursue a master's degree."],
+    ["qualitative","qualitativ","We added qualitative interviews."],
+    ["quantify","quantifizieren, beziffern","It is hard to quantify the benefit."],
+    ["radical","radikal, grundlegend","They proposed a radical reform."],
+    ["ratio","Verhältnis, Quotient","The debt-to-equity ratio is high."],
+    ["rational","rational, vernünftig","Make a rational decision."],
+    ["refine","verfeinern, verbessern","We refined the model further."],
+    ["refute","widerlegen","New data refute the claim."],
+    ["regime","Regime, System","Under the new regime, rules changed."],
+    ["relevant","relevant, einschlägig","Include only relevant information."],
+    ["reliable","zuverlässig","We need a reliable source."],
+    ["render","machen, wiedergeben","The error rendered the file useless."],
+    ["resolve","lösen; Entschlossenheit","They resolved the dispute quickly."],
+    ["restrain","zurückhalten, einschränken","Try to restrain spending."],
+    ["restrict","beschränken, einschränken","Access is restricted to staff."],
+    ["retain","behalten, beibehalten","The firm retains key staff."],
+    ["retrieve","abrufen, zurückholen","You can retrieve the file later."],
+    ["revenue","Einnahmen, Umsatz","Revenue grew by ten percent."],
+    ["scenario","Szenario, Fall","Consider the worst-case scenario."],
+    ["scope","Umfang, Spielraum","That is beyond the scope of the study."],
+    ["scrutiny","genaue Prüfung","The plan came under scrutiny."],
+    ["sequence","Reihenfolge, Abfolge","Follow the correct sequence."],
+    ["simulate","simulieren, nachbilden","The app simulates a real test."],
+    ["simultaneous","gleichzeitig","The events were simultaneous."],
+    ["sole","einzig, alleinig","She is the sole owner."],
+    ["sophisticated","ausgefeilt, anspruchsvoll","They use sophisticated models."],
+    ["stable","stabil, beständig","Prices remained stable."],
+    ["statistic","Statistik, Kennzahl","That is a striking statistic."],
+    ["straightforward","unkompliziert, klar","The task is fairly straightforward."],
+    ["subsidy","Subvention, Zuschuss","The sector relies on subsidies."],
+    ["supplement","ergänzen; Ergänzung","Online classes supplement lectures."],
+    ["suppress","unterdrücken","They tried to suppress the report."],
+    ["surplus","Überschuss","The country runs a trade surplus."],
+    ["suspend","aussetzen, unterbrechen","Trading was suspended briefly."],
+    ["sustainable","nachhaltig","We need sustainable growth."],
+    ["tackle","angehen, bewältigen","We must tackle the root cause."],
+    ["tangible","greifbar, konkret","There were tangible benefits."],
+    ["terminate","beenden, kündigen","They terminated the contract."],
+    ["threshold","Schwelle, Grenzwert","Income above the threshold is taxed."],
+    ["transform","umwandeln, verändern","Technology transformed the industry."],
+    ["transmit","übertragen, senden","The signal is transmitted instantly."],
+    ["transparent","transparent, durchschaubar","The process must be transparent."],
+    ["trigger","auslösen; Auslöser","The news triggered a sell-off."],
+    ["ultimate","letztlich, höchst","The ultimate goal is profit."],
+    ["undergo","durchmachen, sich unterziehen","The plan underwent major changes."],
+    ["uniform","einheitlich; Uniform","Apply a uniform standard."],
+    ["utilise","nutzen, verwenden","We utilise existing resources."],
+    ["verify","überprüfen, bestätigen","Please verify the figures."],
+    ["versatile","vielseitig","She is a versatile researcher."],
+    ["via","über, mittels","Submit the form via the portal."],
+    ["virtual","virtuell","We held a virtual meeting."],
+    ["visible","sichtbar","The effect is clearly visible."],
+    ["widespread","weit verbreitet","The view is widespread."],
+    ["yield","ergeben, erbringen; Ertrag","The study yielded clear results."]
+  ],
+
+  grammar: [
+    {title:"Tenses – Present Perfect vs. Past Simple",
+     items:[
+      {q:"I ___ in Mannheim since 2022.", options:["live","have lived","lived"], answer:1, explain:"„since“ + andauernd → Present Perfect."},
+      {q:"She ___ her bachelor's degree last year.", options:["has finished","finished","finishes"], answer:1, explain:"Abgeschlossener Zeitpunkt „last year“ → Past Simple."},
+      {q:"We ___ already ___ the report.", options:["did / submit","have / submitted","were / submitting"], answer:1, explain:"„already“ → Present Perfect: have submitted."}
+     ]},
+    {title:"Conditionals",
+     items:[
+      {q:"If I ___ more time, I would revise the essay.", options:["have","had","will have"], answer:1, explain:"Second Conditional: if + past, would + infinitive."},
+      {q:"If the deadline ___, we will be in trouble.", options:["passes","passed","would pass"], answer:0, explain:"First Conditional: if + present, will + infinitive."}
+     ]},
+    {title:"Articles (a / an / the / –)",
+     items:[
+      {q:"She is ___ honest student.", options:["a","an","the"], answer:1, explain:"„honest“ beginnt mit Vokal-Laut (stummes h) → an."},
+      {q:"___ University of Mannheim is well known.", options:["A","An","The"], answer:2, explain:"Eigenname mit „of“ → the."},
+      {q:"I enjoy ___ economics.", options:["a","the","–"], answer:2, explain:"Schulfächer/Abstrakta meist ohne Artikel."}
+     ]},
+    {title:"Prepositions",
+     items:[
+      {q:"The results depend ___ several factors.", options:["of","on","from"], answer:1, explain:"depend on."},
+      {q:"She is responsible ___ the budget.", options:["for","of","to"], answer:0, explain:"responsible for."},
+      {q:"This is similar ___ the previous case.", options:["with","to","as"], answer:1, explain:"similar to."}
+     ]},
+    {title:"Word Formation",
+     items:[
+      {q:"Choose the noun: \"The ___ of the data took two days.\" (analyse)", options:["analysis","analytic","analysed"], answer:0, explain:"Nomen: analysis."},
+      {q:"Choose the adjective: \"a very ___ argument\" (convince)", options:["convince","convincing","convincingly"], answer:1, explain:"Adjektiv: convincing."}
+     ]}
+  ]
+};
+
+/* ============================================================
+   EXAM – Daten für die Voll-Simulation (mit Schwierigkeits-Blöcken)
+   Reading & Listening sind adaptiv: routing (mittel) -> hard ODER easy.
+   ============================================================ */
+const EXAM = {
+  reading: {
+    routing: { // mittel
+      label:"Block 1 (mittel)",
+      passage:"The Urban Heat Island Effect\n\nCities are typically several degrees warmer than the surrounding countryside, a phenomenon known as the urban heat island effect. Dark surfaces such as asphalt and rooftops absorb solar radiation during the day and release it slowly at night, keeping urban temperatures elevated. The dense concentration of buildings also limits airflow, while waste heat from vehicles and air conditioning adds further warmth. Planners have proposed remedies such as planting trees, installing reflective roofs, and creating green corridors that channel cooler air into the city centre.",
+      questions:[
+        {q:"Why do urban temperatures stay high at night?",options:["Trees release stored heat","Dark surfaces release absorbed radiation slowly","The countryside warms the city","Air conditioning cools the streets"],answer:1},
+        {q:"Which is NOT mentioned as a cause?",options:["Waste heat from vehicles","Limited airflow","Heat from air conditioning","Increased rainfall"],answer:3},
+        {q:"The word remedies is closest in meaning to:",options:["solutions","dangers","measurements","delays"],answer:0},
+        {q:"What is the main idea of the passage?",options:["Cities should ban vehicles","Cities are warmer and combined measures can help","Trees are the only solution","Air conditioning cools cities"],answer:1}
+      ]
+    },
+    hard: { // schwer
+      label:"Block 2 (schwerer)",
+      passage:"Behavioural Economics and Default Options\n\nClassical economic theory assumes that individuals make rational choices to maximise their own utility. Behavioural economics challenges this assumption, showing that decisions are strongly shaped by the way options are presented. A striking example is the power of default options. When enrolment in a pension scheme is automatic unless employees opt out, participation rates are dramatically higher than when employees must actively opt in, even though the effort involved is trivial in both cases. This effect, often attributed to inertia and a tendency to interpret defaults as implicit recommendations, suggests that the framing of a choice can matter as much as its substance. Policymakers have consequently begun to design defaults deliberately, a practice sometimes criticised for subtly steering behaviour without explicit consent.",
+      questions:[
+        {q:"What does behavioural economics challenge?",options:["That people have preferences","That individuals always choose rationally","That pensions are useful","That effort matters"],answer:1},
+        {q:"Default options increase participation mainly because:",options:["the financial reward is larger","people are too rational","of inertia and treating defaults as recommendations","opting out is impossible"],answer:2},
+        {q:"The phrase as much as its substance suggests that:",options:["content is irrelevant","presentation can be as important as content","substance always wins","framing is unimportant"],answer:1},
+        {q:"Why is deliberately designing defaults criticised?",options:["It is illegal","It is too expensive","It can steer behaviour without explicit consent","It reduces participation"],answer:2},
+        {q:"It can be inferred that the author considers framing effects:",options:["negligible","real and policy-relevant","purely theoretical","beneficial in all cases"],answer:1}
+      ]
+    },
+    easy: { // leicht
+      label:"Block 2 (leichter)",
+      passage:"NOTICE — Student Card Office\n\nThe Student Card Office is open Monday to Friday from 9:00 a.m. to 4:00 p.m. To collect a new card, please bring a photo and your enrolment letter. Replacement cards cost five euros, payable by card only. During the first week of the semester, waiting times may be long, so we recommend coming in the afternoon.",
+      questions:[
+        {q:"When does the office close?",options:["3:00 p.m.","4:00 p.m.","5:00 p.m.","9:00 a.m."],answer:1},
+        {q:"What must you bring for a new card?",options:["Only a photo","A photo and your enrolment letter","Cash only","Nothing"],answer:1},
+        {q:"How much is a replacement card?",options:["Free","Five euros","Ten euros","Two euros"],answer:1},
+        {q:"What is recommended during the first week?",options:["Come in the morning","Come in the afternoon","Call ahead","Avoid the office"],answer:1}
+      ]
+    }
+  },
+  listening: {
+    routing: { // mittel
+      label:"Block 1 (mittel)",
+      script:"In today's session we'll look at the concept of opportunity cost. Opportunity cost is the value of the next best alternative that you give up when you make a choice. For example, if a company invests its capital in a new factory, the opportunity cost is the return it could have earned by investing that money elsewhere. The key point is that opportunity cost is not always about money; choosing to spend an evening studying means giving up the leisure you could have enjoyed instead.",
+      questions:[
+        {q:"What is the main topic?",options:["Building a factory","Opportunity cost","Investing in bonds","Time management"],answer:1},
+        {q:"Opportunity cost is:",options:["always money","the value of the next best alternative given up","the total project cost","a type of tax"],answer:1},
+        {q:"Which is a non-monetary example?",options:["Investing in a factory","Buying bonds","Giving up leisure to study","Paying interest"],answer:2}
+      ]
+    },
+    hard: { // schwer
+      label:"Block 2 (schwerer)",
+      script:"Today we turn to the idea of comparative advantage, which is more subtle than it first appears. A country has a comparative advantage in producing a good if it can produce that good at a lower opportunity cost than another country. Crucially, this is different from absolute advantage. Even if one country is more efficient at producing everything, both countries can still gain from trade by specialising in the goods for which their opportunity cost is lowest. The counter-intuitive conclusion is that trade can benefit both partners even when one is, in absolute terms, less productive across the board.",
+      questions:[
+        {q:"Comparative advantage depends on:",options:["absolute efficiency","lower opportunity cost","population size","natural resources only"],answer:1},
+        {q:"How does it differ from absolute advantage?",options:["They are the same","It is about opportunity cost, not raw efficiency","It applies only to rich countries","It ignores trade"],answer:1},
+        {q:"What is the counter-intuitive conclusion?",options:["Trade helps only the stronger country","Both can gain even if one is less productive overall","Specialisation never helps","Trade should be avoided"],answer:1},
+        {q:"The speaker's tone suggests the idea is:",options:["obvious","subtle and easily misunderstood","unimportant","outdated"],answer:1}
+      ]
+    },
+    easy: { // leicht
+      label:"Block 2 (leichter)",
+      script:"Attention, please. Due to scheduled maintenance, the main elevator in the business school building will be out of service this Thursday from 9 a.m. to 2 p.m. Please use the elevators in the east wing or the staircases. Lectures on the upper floors will take place as usual. We apologize for any inconvenience.",
+      questions:[
+        {q:"Why is the elevator out of service?",options:["A power outage","Scheduled maintenance","An accident","A fire drill"],answer:1},
+        {q:"What should people do?",options:["Stay home","Use the east-wing elevators or stairs","Cancel lectures","Wait until 2 p.m."],answer:1},
+        {q:"Will the upper-floor lectures happen?",options:["No","Yes, as usual","Only in the morning","Only online"],answer:1}
+      ]
+    }
+  },
+  // Writing (nicht adaptiv)
+  writing:{
+    buildSentence:[
+      "The deadline for the application is next Friday.",
+      "She has been studying management for two years.",
+      "If the weather improves, we will hold the event outside.",
+      "The professor asked us to submit the report online.",
+      "Reducing energy consumption can lower monthly costs."
+    ],
+    email:{q:"You missed an important lecture because you were ill. Write a short email to your professor: apologise, explain briefly, and ask how you can catch up.",
+      model:"Dear Professor Müller,\n\nI am writing to apologise for missing yesterday's lecture, as I was unwell. Could you let me know whether the slides are available and what I should review? I am happy to complete any task I missed. Thank you for your understanding.\n\nKind regards,\nMaria Schmidt"}
+  },
+  // Speaking (nicht adaptiv)
+  speaking:{
+    listenRepeat:[
+      "She submitted her application before the official deadline.",
+      "Effective communication is essential for successful teamwork.",
+      "He analysed the data carefully before drawing any conclusions."
+    ],
+    interview:[
+      {q:"Tell me about a subject you enjoyed studying and why.",model:"One subject I really enjoyed was statistics, because it turns real data into clear decisions. I liked that every problem had a logical solution."},
+      {q:"What do you think are the advantages of studying abroad?",model:"Studying abroad improves your language quickly, exposes you to a different academic culture, and builds independence and confidence."}
+    ]
+  }
+};
+
+/* ---------- Fortschritt (localStorage) ---------- */
+const PKEY="toefl_progress_v1";
+let progress = JSON.parse(localStorage.getItem(PKEY)||"{}");
+function saveProgress(){localStorage.setItem(PKEY,JSON.stringify(progress));renderGlobalBar();}
+function setBest(mod,pct){if(!progress[mod]||pct>progress[mod]){progress[mod]=pct;saveProgress();}}
+const MODULES=["reading","listening","speaking","writing","vocab","grammar"];
+function renderGlobalBar(){
+  let done=MODULES.filter(m=>progress[m]!=null).length;
+  document.getElementById("globalbar").style.width=(done/MODULES.length*100)+"%";
+}
+
+/* ---------- Helfer ---------- */
+const app=document.getElementById("app");
+function el(html){const d=document.createElement("div");d.innerHTML=html.trim();return d.firstElementChild;}
+function clear(){app.innerHTML="";window.scrollTo(0,0);}
+function backBtn(){const b=el('<button class="back">← Zurück zur Übersicht</button>');b.onclick=dashboard;return b;}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+/* Generisches Multiple-Choice-Quiz */
+function buildQuiz(container,questions,onDone){
+  const state={};
+  questions.forEach((qu,i)=>{
+    const box=el(`<div class="q"><div class="qt">${qu.type?`<span class="pill">${qu.type}</span> `:""}${i+1}. ${qu.q}</div></div>`);
+    qu.options.forEach((op,oi)=>{
+      const o=el(`<label class="opt"><input type="radio" name="q${i}">${op}</label>`);
+      o.querySelector("input").onchange=()=>{state[i]=oi;box.querySelectorAll(".opt").forEach(x=>x.classList.remove("sel"));o.classList.add("sel");};
+      box.appendChild(o);
+    });
+    const ex=el(`<div class="expl">${qu.explain||""}</div>`);
+    box.appendChild(ex);
+    container.appendChild(box);
+  });
+  const btn=el('<button class="btn accent">Auswerten</button>');
+  const res=el('<div></div>');
+  btn.onclick=()=>{
+    let correct=0;
+    questions.forEach((qu,i)=>{
+      const box=container.querySelectorAll(".q")[i];
+      const opts=box.querySelectorAll(".opt");
+      opts.forEach(o=>o.style.pointerEvents="none");
+      if(state[i]===qu.answer){opts[qu.answer].classList.add("correct");correct++;}
+      else{opts[qu.answer].classList.add("correct");if(state[i]!=null)opts[state[i]].classList.add("wrong");}
+      box.querySelector(".expl").classList.add("show");
+    });
+    const pct=Math.round(correct/questions.length*100);
+    res.innerHTML="";
+    res.appendChild(scoreBanner(correct,questions.length));
+    btn.disabled=true;
+    if(onDone)onDone(pct);
+  };
+  container.appendChild(btn);
+  container.appendChild(res);
+}
+function scoreBanner(correct,total){
+  const pct=Math.round(correct/total*100);
+  const cls=pct>=80?"good":pct>=50?"mid":"low";
+  return el(`<div class="result ${cls}">${correct} / ${total} richtig (${pct}%)</div>`);
+}
+
+/* ---------- Text-to-Speech ---------- */
+let ttsVoice=null;
+function pickVoice(){
+  const vs=speechSynthesis.getVoices();
+  ttsVoice=vs.find(v=>/en[-_]US/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang))||null;
+}
+if('speechSynthesis' in window){speechSynthesis.onvoiceschanged=pickVoice;pickVoice();}
+function speak(text,rate){
+  if(!('speechSynthesis' in window)){alert("Dieser Browser unterstützt keine Sprachausgabe.");return;}
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang="en-US";u.rate=rate||0.95;if(ttsVoice)u.voice=ttsVoice;
+  speechSynthesis.speak(u);
+}
+function audioButton(text,label){
+  const b=el(`<button class="btn ghost audiobtn">▶ ${label||"Abspielen"}</button>`);
+  b.onclick=()=>speak(text);
+  return b;
+}
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+function tile(mod,title,desc){
+  const best=progress[mod];
+  const t=el(`<button class="tile">
+     <div class="t">${title}</div>
+     <div class="d">${desc}</div>
+     <div class="st ${best!=null?'done':''}">${best!=null?'✓ zuletzt '+best+'%':'noch nicht geübt'}</div>
+   </button>`);
+  return t;
+}
+function dashboard(){
+  if(typeof stopExamTimer==="function")stopExamTimer();
+  clear();
+  app.appendChild(el(`<div class="card">
+    <h2>Willkommen 👋</h2>
+    <p class="muted small">Diese App übt das <b>neue TOEFL-iBT-Format (ab 21.01.2026)</b>: adaptiv, ca. 2 Stunden, Bewertung auf der 1–6-Bandskala (in der Übergangszeit zusätzlich 0–120). Dein Zielwert für den <b>Mannheim Master in Management</b> ist <b>≥ 100 / 120 Punkte (Niveau C1)</b>.</p>
+    <div class="kpi">
+      <div class="b"><div class="n">≥100</div><div class="l">Zielpunktzahl /120</div></div>
+      <div class="b"><div class="n">C1</div><div class="l">Geforderte Stufe</div></div>
+      <div class="b"><div class="n">4</div><div class="l">Test-Bereiche</div></div>
+    </div>
+  </div>`));
+
+  const grid=el('<div class="grid two"></div>');
+  grid.appendChild(withClick(tile("reading","📖 Reading","Complete the Words · Daily Life · Academic Passage"),viewReading));
+  grid.appendChild(withClick(tile("listening","🎧 Listening","Choose a Response · Conversation · Announcement · Talk"),viewListening));
+  grid.appendChild(withClick(tile("speaking","🎙️ Speaking","Listen and Repeat · Take an Interview"),viewSpeaking));
+  grid.appendChild(withClick(tile("writing","✍️ Writing","Build a Sentence · Email · Academic Discussion"),viewWriting));
+  grid.appendChild(withClick(tile("vocab","🔤 Vokabeln","Academic / C1-Wortschatz als Karteikarten"),viewVocab));
+  grid.appendChild(withClick(tile("grammar","📐 Grammatik","Gezielte Drills für Writing & Speaking"),viewGrammar));
+  app.appendChild(grid);
+
+  const mock=el(`<div class="card" style="text-align:center">
+     <h2>Test-Modi</h2>
+     <p class="muted small"><b>Mini-Mock</b>: kurz, je eine Aufgabe pro Bereich – ideal zur schnellen Standortbestimmung.<br><b>Voll-Simulation</b>: prüfungsnaher Durchlauf (~90 Min.) in echter Reihenfolge, <b>adaptiv</b> in Reading & Listening, mit Gesamt-Score.</p>
+  </div>`);
+  const mbrow=el('<div class="row" style="justify-content:center"></div>');
+  const mb=el('<button class="btn ghost">🏁 Mini-Mock</button>');mb.onclick=viewMock;
+  const eb=el('<button class="btn">🎓 Voll-Simulation</button>');eb.onclick=viewExam;
+  mbrow.appendChild(mb);mbrow.appendChild(eb);mock.appendChild(mbrow);
+  app.appendChild(mock);
+
+  if(localStorage.getItem(PKEY)){
+    const rb=el('<button class="back" style="color:#c0392b">Fortschritt zurücksetzen</button>');
+    rb.onclick=()=>{if(confirm("Allen gespeicherten Fortschritt löschen?")){localStorage.removeItem(PKEY);progress={};dashboard();}};
+    app.appendChild(rb);
+  }
+  renderGlobalBar();
+}
+function withClick(tileEl,fn){tileEl.onclick=fn;return tileEl;}
+
+/* ============================================================
+   READING
+   ============================================================ */
+function viewReading(){
+  clear();app.appendChild(backBtn());
+  const r=CONTENT.reading;
+  let total=0,correctAll=0;
+
+  // Complete the Words
+  const cw=r.completeWords;
+  const c1=el(`<div class="card"><h2>${cw.title}</h2><p class="muted small">${cw.intro}</p></div>`);
+  const parts=cw.text.split(/\{|\}/); // text, answer, text, answer...
+  const p=el('<p style="font-size:15.5px;line-height:1.9"></p>');
+  const inputs=[];let ai=0;
+  parts.forEach((seg,idx)=>{
+    if(idx%2===0){p.appendChild(document.createTextNode(seg));}
+    else{
+      const ans=cw.answers[ai++];
+      const inp=el(`<input class="blank" type="text" placeholder="${ans[0]}…" autocomplete="off">`);
+      inp.dataset.ans=ans;inputs.push(inp);p.appendChild(inp);
+    }
+  });
+  c1.appendChild(p);
+  const cb=el('<button class="btn accent sm">Prüfen</button>');
+  const cres=el('<div></div>');
+  cb.onclick=()=>{let ok=0;inputs.forEach(inp=>{const good=inp.value.trim().toLowerCase()===inp.dataset.ans.toLowerCase();inp.classList.toggle("ok",good);inp.classList.toggle("no",!good);if(good)ok++;});cres.innerHTML="";cres.appendChild(scoreBanner(ok,inputs.length));total+=inputs.length;correctAll+=ok;cb.disabled=true;maybeScore();};
+  c1.appendChild(cb);c1.appendChild(cres);
+  app.appendChild(c1);
+
+  // Daily Life
+  const dl=r.dailyLife;
+  const c2=el(`<div class="card"><h2>${dl.title}</h2><pre style="white-space:pre-wrap;font-family:inherit;font-size:14.5px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:12px">${dl.passage}</pre></div>`);
+  buildQuiz(c2,dl.questions,(pct)=>{total+=dl.questions.length;correctAll+=Math.round(pct/100*dl.questions.length);maybeScore();});
+  app.appendChild(c2);
+
+  // Academic
+  const ac=r.academic;
+  const c3=el(`<div class="card"><h2>${ac.title}</h2><pre style="white-space:pre-wrap;font-family:inherit;font-size:14.5px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:12px">${ac.passage}</pre></div>`);
+  buildQuiz(c3,ac.questions,(pct)=>{total+=ac.questions.length;correctAll+=Math.round(pct/100*ac.questions.length);maybeScore();});
+  app.appendChild(c3);
+
+  let scored=0;const need=3;
+  function maybeScore(){scored++;if(scored>=need){setBest("reading",Math.round(correctAll/total*100));}}
+  app.appendChild(backBtn());
+}
+
+/* ============================================================
+   LISTENING
+   ============================================================ */
+function viewListening(){
+  clear();app.appendChild(backBtn());
+  const l=CONTENT.listening;
+  app.appendChild(el(`<div class="note">🎧 Die Hörtexte werden von der eingebauten Browser-Stimme vorgelesen (am natürlichsten in Chrome/Edge). Du kannst sie mehrfach abspielen. Im echten Test hörst du sie nur begrenzt oft.</div>`));
+  let total=0,correctAll=0,scored=0;const need=4;
+  function maybeScore(n,pct){total+=n;correctAll+=Math.round(pct/100*n);scored++;if(scored>=need)setBest("listening",Math.round(correctAll/total*100));}
+
+  // Choose a Response
+  const cr=l.chooseResponse;
+  const c1=el(`<div class="card"><h2>${cr.title}</h2><p class="muted small">${cr.intro}</p></div>`);
+  const qs1=cr.items.map(it=>({q:"Welche Antwort passt?",options:it.options,answer:it.answer,explain:it.explain}));
+  cr.items.forEach((it,i)=>{const b=audioButton(it.audio,`Äußerung ${i+1} anhören`);b.classList.add("sm");b.style.marginBottom="4px";c1.appendChild(b);});
+  buildQuiz(c1,qs1,(pct)=>maybeScore(qs1.length,pct));
+  app.appendChild(c1);
+
+  // Conversation / Announcement / Talk
+  [l.conversation,l.announcement,l.talk].forEach(sec=>{
+    const c=el(`<div class="card"><h2>${sec.title}</h2><p class="muted small">${sec.intro}</p></div>`);
+    c.appendChild(audioButton(sec.script,"Anhören"));
+    const tog=el('<button class="btn ghost sm" style="margin-left:8px">Skript anzeigen</button>');
+    const scr=el(`<pre class="hidden" style="white-space:pre-wrap;font-family:inherit;font-size:14px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px">${sec.script}</pre>`);
+    tog.onclick=()=>{scr.classList.toggle("hidden");tog.textContent=scr.classList.contains("hidden")?"Skript anzeigen":"Skript verbergen";};
+    c.appendChild(tog);c.appendChild(scr);
+    buildQuiz(c,sec.questions,(pct)=>maybeScore(sec.questions.length,pct));
+    app.appendChild(c);
+  });
+  app.appendChild(backBtn());
+}
+
+/* ============================================================
+   SPEAKING
+   ============================================================ */
+function micSupported(){return !!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder);}
+function secureHint(){
+  if(location.protocol==="https:"||location.hostname==="localhost"||location.hostname==="127.0.0.1")return "";
+  return `<div class="note">⚠️ Für die Mikrofon-Aufnahme muss die Seite über <b>HTTPS</b> oder <b>localhost</b> laufen. Beim direkten Öffnen der Datei (file://) ist das Mikrofon evtl. gesperrt – nach dem Veröffentlichen auf GitHub Pages funktioniert es.</div>`;
+}
+function viewSpeaking(){
+  clear();app.appendChild(backBtn());
+  const s=CONTENT.speaking;
+  if(secureHint())app.appendChild(el(secureHint()));
+  if(!micSupported())app.appendChild(el(`<div class="note">Dieser Browser stellt kein Mikrofon bereit. Du kannst trotzdem zuhören, nachsprechen und dich mit der Checkliste selbst bewerten.</div>`));
+
+  // Listen and Repeat
+  const lr=s.listenRepeat;
+  const c1=el(`<div class="card"><h2>${lr.title}</h2><p class="muted small">${lr.intro}</p></div>`);
+  let lrScore=0,lrCount=0;
+  lr.sentences.forEach((sent,i)=>{
+    const box=el(`<div class="q"><div class="qt">${i+1}. <span class="muted">(Satz anhören & nachsprechen)</span></div></div>`);
+    const play=el('<button class="btn ghost sm">▶ Satz hören</button>');play.onclick=()=>speak(sent);
+    const rec=el('<button class="btn sm" style="margin-left:8px">● Aufnahme</button>');
+    const fb=el('<div class="small" style="margin-top:10px"></div>');
+    const showS=el('<button class="btn ghost sm" style="margin-left:8px">Satz zeigen</button>');
+    const sTxt=el(`<div class="small hidden" style="margin-top:8px;font-style:italic">„${sent}"</div>`);
+    showS.onclick=()=>sTxt.classList.toggle("hidden");
+    rec.onclick=()=>doRepeat(sent,fb,rec,(score)=>{lrScore+=score;lrCount++;setBest("speaking",Math.round(lrScore/lrCount));});
+    box.appendChild(play);box.appendChild(rec);box.appendChild(showS);box.appendChild(sTxt);box.appendChild(fb);
+    c1.appendChild(box);
+  });
+  app.appendChild(c1);
+
+  // Take an Interview
+  const iv=s.interview;
+  const c2=el(`<div class="card"><h2>${iv.title}</h2><p class="muted small">${iv.intro}</p></div>`);
+  iv.prompts.forEach((pr,i)=>{
+    const box=el(`<div class="q"><div class="qt">${i+1}. ${pr.q}</div></div>`);
+    box.appendChild(audioButton(pr.q,"Frage hören"));
+    const rec=el('<button class="btn sm" style="margin-left:8px">● Antwort aufnehmen</button>');
+    const player=el('<div style="margin-top:10px"></div>');
+    rec.onclick=()=>doRecordPlayback(player,rec);
+    box.appendChild(rec);box.appendChild(player);
+    // checklist
+    const chk=el('<div class="rubric"><b>Selbstbewertung:</b></div>');
+    iv.checklist.forEach(item=>{chk.appendChild(el(`<label class="check"><input type="checkbox">${item}</label>`));});
+    box.appendChild(chk);
+    const mb=el('<button class="btn ghost sm">Musterantwort anzeigen</button>');
+    const model=el(`<div class="model">${pr.model}</div>`);
+    mb.onclick=()=>{model.classList.toggle("show");mb.textContent=model.classList.contains("show")?"Musterantwort verbergen":"Musterantwort anzeigen";};
+    box.appendChild(mb);box.appendChild(model);
+    c2.appendChild(box);
+  });
+  app.appendChild(c2);
+  app.appendChild(backBtn());
+}
+
+// Listen-and-Repeat: aufnehmen + (optional) Spracherkennung & Abgleich
+function doRepeat(target,fb,btn,cb){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(SR){
+    const rec=new SR();rec.lang="en-US";rec.interimResults=false;rec.maxAlternatives=1;
+    fb.innerHTML='🎙️ <b>Sprich jetzt…</b>';btn.disabled=true;
+    rec.onresult=(e)=>{
+      const said=e.results[0][0].transcript;
+      const score=similarity(target,said);
+      const cls=score>=80?"good":score>=50?"mid":"low";
+      fb.innerHTML=`<div class="result ${cls}" style="margin-top:6px">Erkannt: „${said}"<br>Übereinstimmung: ${score}%</div>`;
+      btn.disabled=false;cb&&cb(score);
+    };
+    rec.onerror=(e)=>{fb.innerHTML=`<span class="muted">Spracherkennung nicht möglich (${e.error}). Du kannst stattdessen aufnehmen und selbst vergleichen.</span>`;btn.disabled=false;fallbackRecord();};
+    rec.onend=()=>{btn.disabled=false;};
+    try{rec.start();}catch(err){fallbackRecord();}
+  }else{fallbackRecord();}
+  function fallbackRecord(){doRecordPlayback(fb,btn);}
+}
+// Reine Audioaufnahme + Wiedergabe
+function doRecordPlayback(container,btn){
+  if(!micSupported()){container.innerHTML='<span class="muted">Kein Mikrofon verfügbar – bitte über HTTPS/localhost öffnen.</span>';return;}
+  navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
+    const mr=new MediaRecorder(stream);const chunks=[];
+    mr.ondataavailable=e=>chunks.push(e.data);
+    mr.onstop=()=>{
+      const blob=new Blob(chunks,{type:'audio/webm'});const url=URL.createObjectURL(blob);
+      const audio=el(`<audio controls src="${url}" style="width:100%;margin-top:8px"></audio>`);
+      container.innerHTML="";container.appendChild(audio);
+      stream.getTracks().forEach(t=>t.stop());
+    };
+    mr.start();btn.disabled=true;const old=btn.textContent;btn.textContent="■ Stop";
+    btn.onclick=()=>{mr.stop();btn.disabled=false;btn.textContent=old;};
+    container.innerHTML='<span class="muted">🎙️ Aufnahme läuft… auf „Stop" drücken.</span>';
+  }).catch(err=>{container.innerHTML=`<span class="muted">Mikrofon-Zugriff verweigert (${err.name}).</span>`;});
+}
+// einfache Wort-Übereinstimmung
+function similarity(a,b){
+  const norm=s=>s.toLowerCase().replace(/[^a-z\s']/g," ").split(/\s+/).filter(Boolean);
+  const A=norm(a),B=new Set(norm(b));let hit=0;A.forEach(w=>{if(B.has(w))hit++;});
+  return Math.round(hit/Math.max(A.length,1)*100);
+}
+
+/* ============================================================
+   WRITING
+   ============================================================ */
+function viewWriting(){
+  clear();app.appendChild(backBtn());
+  const w=CONTENT.writing;
+  let bsScore=0,bsCount=0;
+
+  // Build a Sentence
+  const bs=w.buildSentence;
+  const c1=el(`<div class="card"><h2>${bs.title}</h2><p class="muted small">${bs.intro}</p></div>`);
+  bs.items.forEach((sentence,i)=>{
+    const words=sentence.replace(/\.$/,"").split(" ");
+    const box=el(`<div class="q"><div class="qt">Satz ${i+1}</div></div>`);
+    const answer=el('<div class="answerbox"></div>');
+    const pool=el('<div class="row"></div>');
+    const order=[];
+    shuffle(words).forEach(wd=>{
+      const chip=el(`<span class="chip">${wd}</span>`);
+      chip.onclick=()=>{order.push(wd);chip.classList.add("used");const a=el(`<span class="chip">${wd}</span>`);a.onclick=()=>{/* zurücklegen */const idx=order.lastIndexOf(wd);if(idx>-1)order.splice(idx,1);a.remove();chip.classList.remove("used");res.innerHTML="";};answer.appendChild(a);};
+      pool.appendChild(chip);
+    });
+    const chk=el('<button class="btn accent sm" style="margin-top:10px">Prüfen</button>');
+    const res=el('<div></div>');
+    chk.onclick=()=>{
+      const built=order.join(" ");const correct=words.join(" ");
+      const ok=built===correct;
+      res.innerHTML=`<div class="result ${ok?'good':'low'}">${ok?'✓ Richtig!':'✗ Noch nicht: '+sentence}</div>`;
+      bsScore+=ok?100:0;bsCount++;setBest("writing",Math.round(bsScore/bsCount));
+    };
+    box.appendChild(answer);box.appendChild(pool);box.appendChild(chk);box.appendChild(res);
+    c1.appendChild(box);
+  });
+  app.appendChild(c1);
+
+  // Email + Discussion (Timer + Rubrik + Muster)
+  app.appendChild(writingTask(w.email));
+  app.appendChild(writingTask(w.discussion));
+  app.appendChild(backBtn());
+}
+function writingTask(task){
+  const card=el(`<div class="card"><h2>${task.title}</h2><p class="muted small">${task.intro}</p></div>`);
+  const pr=task.prompts[Math.floor(Math.random()*task.prompts.length)];
+  card.appendChild(el(`<div class="q"><div class="qt">${pr.q}</div></div>`));
+  const ta=el('<textarea placeholder="Hier schreiben…"></textarea>');
+  const meta=el('<div class="row" style="justify-content:space-between"></div>');
+  const cnt=el('<span class="counter" style="margin:0">0 Wörter</span>');
+  const timer=el(`<span class="timer">${fmt(task.timer)}</span>`);
+  const start=el('<button class="btn ghost sm">⏱ Timer starten</button>');
+  let iv=null,left=task.timer;
+  start.onclick=()=>{if(iv){clearInterval(iv);iv=null;start.textContent="⏱ Timer starten";return;}start.textContent="⏸ Stop";iv=setInterval(()=>{left--;timer.textContent=fmt(left);if(left<=60)timer.classList.add("warn");if(left<=0){clearInterval(iv);iv=null;timer.textContent="Zeit um";ta.readOnly=true;}},1000);};
+  ta.oninput=()=>{const n=ta.value.trim()?ta.value.trim().split(/\s+/).length:0;cnt.textContent=n+" Wörter";};
+  meta.appendChild(cnt);const right=el('<div class="row" style="margin:0;gap:8px"></div>');right.appendChild(timer);right.appendChild(start);meta.appendChild(right);
+  card.appendChild(ta);card.appendChild(meta);
+  card.appendChild(el(`<div class="rubric"><b>Worauf es ankommt (Bewertungsraster):</b><ul style="margin:6px 0 0;padding-left:18px">
+     <li>Aufgabe vollständig erfüllt / Frage beantwortet</li>
+     <li>klare Struktur (Einleitung – Begründung – Beispiel – Abschluss)</li>
+     <li>Verbindungswörter (because, however, for example, therefore)</li>
+     <li>Bandbreite & Korrektheit von Wortschatz und Grammatik</li>
+     <li>angemessener Ton ${task.title.includes('Email')?'(höflich, passende Anrede/Gruß)':'(sachlich-argumentativ)'}</li>
+  </ul></div>`));
+  const mb=el('<button class="btn ghost sm">Musterlösung anzeigen</button>');
+  const model=el(`<div class="model">${pr.model}</div>`);
+  mb.onclick=()=>{model.classList.toggle("show");mb.textContent=model.classList.contains("show")?"Musterlösung verbergen":"Musterlösung anzeigen";};
+  const done=el('<button class="btn sm accent" style="margin-left:8px">Als geübt markieren</button>');
+  done.onclick=()=>{setBest("writing",Math.max(progress["writing"]||0,70));done.textContent="✓ gespeichert";done.disabled=true;};
+  card.appendChild(mb);card.appendChild(done);card.appendChild(model);
+  return card;
+}
+function fmt(s){const m=Math.floor(s/60),x=s%60;return m+":"+(x<10?"0":"")+x;}
+
+/* ============================================================
+   VOKABELN (Karteikarten)
+   ============================================================ */
+function viewVocab(){
+  clear();app.appendChild(backBtn());
+  const deck=shuffle(CONTENT.vocab);
+  let i=0,known=0;
+  const card=el('<div class="card"><h2>🔤 Vokabeltrainer <span class="pill">Academic / C1</span></h2></div>');
+  const flash=el('<div class="flash"></div>');
+  const counter=el('<div class="counter"></div>');
+  const controls=el('<div class="row" style="justify-content:center;margin-top:14px"></div>');
+  const reveal=el('<button class="btn ghost">Bedeutung zeigen</button>');
+  const no=el('<button class="btn ghost">Noch üben</button>');
+  const yes=el('<button class="btn accent">Gewusst ✓</button>');
+  controls.appendChild(no);controls.appendChild(reveal);controls.appendChild(yes);
+  card.appendChild(flash);card.appendChild(counter);card.appendChild(controls);
+  app.appendChild(card);
+  function show(){
+    if(i>=deck.length){
+      const pct=Math.round(known/deck.length*100);setBest("vocab",pct);
+      flash.innerHTML=`<div class="w">Fertig! 🎉</div><div class="ex">Du kanntest ${known} von ${deck.length} Wörtern (${pct}%).</div>`;
+      counter.textContent="";controls.innerHTML="";
+      const again=el('<button class="btn">Nochmal</button>');again.onclick=viewVocab;controls.appendChild(again);return;
+    }
+    const [w,de,ex]=deck[i];
+    flash.innerHTML=`<div class="w">${w}</div><div class="ex">${ex}</div><div class="de">→ ${de}</div>`;
+    counter.textContent=`Karte ${i+1} / ${deck.length}`;reveal.disabled=false;
+  }
+  reveal.onclick=()=>{flash.querySelector(".de").classList.add("show");reveal.disabled=true;};
+  yes.onclick=()=>{known++;i++;show();};
+  no.onclick=()=>{i++;show();};
+  show();
+}
+
+/* ============================================================
+   GRAMMATIK
+   ============================================================ */
+function viewGrammar(){
+  clear();app.appendChild(backBtn());
+  app.appendChild(el('<div class="card"><h2>📐 Grammatik-Drills</h2><p class="muted small">Gezielte Übungen zu den Strukturen, die im Writing & Speaking am häufigsten Punkte kosten.</p></div>'));
+  let total=0,correctAll=0,scored=0;const need=CONTENT.grammar.length;
+  CONTENT.grammar.forEach(set=>{
+    const c=el(`<div class="card"><h3 style="margin-top:0">${set.title}</h3></div>`);
+    buildQuiz(c,set.items,(pct)=>{total+=set.items.length;correctAll+=Math.round(pct/100*set.items.length);scored++;if(scored>=need)setBest("grammar",Math.round(correctAll/total*100));});
+    app.appendChild(c);
+  });
+  app.appendChild(backBtn());
+}
+
+/* ============================================================
+   MINI-MOCK
+   ============================================================ */
+function viewMock(){
+  clear();app.appendChild(backBtn());
+  app.appendChild(el('<div class="card"><h2>🏁 Mini-Mock-Test</h2><p class="muted small">Kurzform: je eine Aufgabe pro objektivem Bereich. Am Ende erhältst du eine grobe Punkt-<b>Schätzung</b> (keine offizielle Bewertung).</p></div>'));
+  let total=0,correct=0,scored=0;const need=3;
+  const result=el('<div class="card hidden"></div>');
+
+  // Reading (academic, 4 Fragen)
+  const rc=el(`<div class="card"><h3 style="margin-top:0">📖 Reading</h3><pre style="white-space:pre-wrap;font-family:inherit;font-size:14px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:12px">${CONTENT.reading.academic.passage}</pre></div>`);
+  const rq=CONTENT.reading.academic.questions.slice(0,4);
+  buildQuiz(rc,rq,(pct)=>{total+=rq.length;correct+=Math.round(pct/100*rq.length);tally();});
+  app.appendChild(rc);
+
+  // Listening (talk)
+  const lc=el(`<div class="card"><h3 style="margin-top:0">🎧 Listening</h3></div>`);
+  lc.appendChild(audioButton(CONTENT.listening.talk.script,"Anhören"));
+  buildQuiz(lc,CONTENT.listening.talk.questions,(pct)=>{total+=CONTENT.listening.talk.questions.length;correct+=Math.round(pct/100*CONTENT.listening.talk.questions.length);tally();});
+  app.appendChild(lc);
+
+  // Writing (build a sentence x3)
+  const wc=el('<div class="card"><h3 style="margin-top:0">✍️ Writing – Build a Sentence</h3></div>');
+  const sents=shuffle(CONTENT.writing.buildSentence.items).slice(0,3);
+  let wDone=0,wOk=0;
+  sents.forEach((sentence,i)=>{
+    const words=sentence.replace(/\.$/,"").split(" ");
+    const box=el(`<div class="q"><div class="qt">Satz ${i+1}</div></div>`);
+    const answer=el('<div class="answerbox"></div>');const pool=el('<div class="row"></div>');const order=[];
+    shuffle(words).forEach(wd=>{const chip=el(`<span class="chip">${wd}</span>`);chip.onclick=()=>{order.push(wd);chip.classList.add("used");const a=el(`<span class="chip">${wd}</span>`);a.onclick=()=>{const idx=order.lastIndexOf(wd);if(idx>-1)order.splice(idx,1);a.remove();chip.classList.remove("used");};answer.appendChild(a);};pool.appendChild(chip);});
+    const chk=el('<button class="btn accent sm" style="margin-top:10px">Prüfen</button>');const res=el('<div></div>');
+    chk.onclick=()=>{const ok=order.join(" ")===words.join(" ");res.innerHTML=`<div class="result ${ok?'good':'low'}">${ok?'✓ Richtig!':'✗ '+sentence}</div>`;wOk+=ok?1:0;wDone++;chk.disabled=true;if(wDone===sents.length){total+=sents.length;correct+=wOk;tally();}};
+    box.appendChild(answer);box.appendChild(pool);box.appendChild(chk);box.appendChild(res);wc.appendChild(box);
+  });
+  app.appendChild(wc);
+  app.appendChild(result);
+
+  function tally(){scored++;if(scored>=need)showResult();}
+  function showResult(){
+    const pct=Math.round(correct/total*100);
+    const est=Math.round(pct/100*120);
+    let band,cefr;
+    if(est>=110){band="5.5–6";cefr="C1/C2";}
+    else if(est>=100){band="5";cefr="C1";}
+    else if(est>=90){band="4.5";cefr="B2+/C1";}
+    else if(est>=72){band="4";cefr="B2";}
+    else if(est>=60){band="3.5";cefr="B1+/B2";}
+    else{band="≤3";cefr="≤B1";}
+    const reach=est>=100;
+    result.innerHTML=`<h2>Dein Ergebnis (Schätzung)</h2>
+      <div class="kpi">
+        <div class="b"><div class="n">${est}</div><div class="l">geschätzt /120</div></div>
+        <div class="b"><div class="n">${band}</div><div class="l">Band (1–6)</div></div>
+        <div class="b"><div class="n">${cefr}</div><div class="l">CEFR</div></div>
+      </div>
+      <div class="result ${reach?'good':'mid'}" style="margin-top:14px">${reach?'🎯 Auf Kurs zum Mannheim-Ziel (≥100/C1)!':'Noch unter dem Mannheim-Ziel von 100/120 – dranbleiben!'}</div>
+      <p class="muted small" style="margin-top:10px">Hinweis: nur objektive Aufgaben (Reading, Listening, Build-a-Sentence) fließen ein. Speaking und die freien Writing-Aufgaben werden im echten Test separat bewertet – übe sie in den jeweiligen Modulen mit Musterlösung & Checkliste.</p>`;
+    result.classList.remove("hidden");
+    setBest("reading",Math.max(progress["reading"]||0,pct)); // grober Beitrag
+    result.scrollIntoView({behavior:"smooth"});
+  }
+  app.appendChild(backBtn());
+}
+
+/* ============================================================
+   VOLL-SIMULATION (viewExam) – adaptiv in Reading & Listening
+   ============================================================ */
+let examUid=0, examInterval=null, examLeft=0;
+const examState={reading:0,listening:0,writing:0,speaking:0,rPath:"",lPath:""};
+
+function examMCQ(container,questions){
+  examUid++; const uid=examUid, sel={};
+  questions.forEach((qu,i)=>{
+    const box=el(`<div class="q"><div class="qt">${i+1}. ${qu.q}</div></div>`);
+    qu.options.forEach((op,oi)=>{
+      const o=el(`<label class="opt"><input type="radio" name="ex${uid}_${i}">${op}</label>`);
+      o.querySelector("input").onchange=()=>{sel[i]=oi;box.querySelectorAll(".opt").forEach(x=>x.classList.remove("sel"));o.classList.add("sel");};
+      box.appendChild(o);
+    });
+    container.appendChild(box);
+  });
+  return ()=>questions.reduce((n,qu,i)=>n+(sel[i]===qu.answer?1:0),0);
+}
+function examSelfRate(container,label){
+  const wrap=el(`<div class="rubric"><b>${label}</b><div class="muted small">1 = sehr unsicher · 5 = sehr sicher/flüssig</div><div class="row" style="margin-top:8px"></div></div>`);
+  const row=wrap.querySelector(".row"); let val=3;
+  for(let n=1;n<=5;n++){const b=el(`<button class="btn ghost sm" style="min-width:42px">${n}</button>`);if(n===3)b.classList.add("accent");b.onclick=()=>{val=n;row.querySelectorAll("button").forEach(x=>x.classList.remove("accent"));b.classList.add("accent");};row.appendChild(b);}
+  container.appendChild(wrap); return ()=>val;
+}
+function examClock(){return el(`<div class="card" style="position:sticky;top:64px;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:12px 16px"><span class="small muted">Gesamtzeit</span><span class="timer" id="examclock">${fmt(examLeft)}</span></div>`);}
+function examHeader(sectionTitle,sub){
+  const c=el(`<div class="card"><h2>${sectionTitle}</h2><p class="muted small">${sub}</p></div>`);
+  return c;
+}
+function startExamTimer(){
+  examLeft=90*60; // R30+L29+W23+S8 ~ 90 min
+  if(examInterval)clearInterval(examInterval);
+  examInterval=setInterval(()=>{examLeft--;const c=document.getElementById("examclock");if(c){c.textContent=examLeft>0?fmt(examLeft):"Zeit um";if(examLeft<=300)c.classList.add("warn");}if(examLeft<=0){clearInterval(examInterval);examInterval=null;}},1000);
+}
+function stopExamTimer(){if(examInterval){clearInterval(examInterval);examInterval=null;}}
+
+function viewExam(){
+  clear();
+  examState.reading=examState.listening=examState.writing=examState.speaking=0;examState.rPath="";examState.lPath="";
+  app.appendChild(el(`<div class="card">
+    <h2>🎓 Voll-Simulation <span class="pill">prüfungsnah</span></h2>
+    <p class="muted small">Ein durchgehender Testdurchlauf in der echten Reihenfolge <b>Reading → Listening → Writing → Speaking</b> mit Gesamt-Timer (~90 Min.) und Gesamt-Score (0–120 / Band / CEFR).</p>
+    <p class="small"><b>Adaptiv wie im echten Test:</b> In Reading und Listening bestimmt dein erster Block, ob ein <b>schwererer</b> oder <b>leichterer</b> Folgeblock kommt. Schwere Blöcke richtig zu lösen ermöglicht den höchsten Score. (Writing & Speaking sind – wie real – nicht adaptiv und werden per Selbsteinschätzung + Musterlösung bewertet.)</p>
+    <div class="note">Während des Laufs gibt es <b>keine</b> Lösungen/Erklärungen – die kommen erst im Ergebnis. Referenz-Itemzahlen im echten Test: Reading 50 · Listening 47 · Writing 12 · Speaking 11. Diese Simulation nutzt eine repräsentative, kürzere Auswahl.</div>
+  </div>`));
+  const start=el('<button class="btn">Simulation starten ▶</button>');
+  start.onclick=()=>{startExamTimer();examReading1();};
+  app.appendChild(start);
+  app.appendChild(backBtn());
+}
+
+// ---- READING (adaptiv) ----
+function examReading1(){
+  clear();app.appendChild(examClock());
+  const b=EXAM.reading.routing;
+  const c=examHeader("📖 Reading – "+b.label,"Lies die Passage und beantworte alle Fragen. Empfohlene Zeit für Reading gesamt: ~30 Min.");
+  c.appendChild(el(`<pre style="white-space:pre-wrap;font-family:inherit;font-size:14.5px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:12px">${b.passage}</pre>`));
+  const score=examMCQ(c,b.questions);app.appendChild(c);
+  const next=el('<button class="btn accent">Weiter →</button>');
+  next.onclick=()=>{const correct=score(),frac=correct/b.questions.length;examState._rRoutF=frac;examReading2(frac);};
+  app.appendChild(next);
+}
+function examReading2(routF){
+  clear();app.appendChild(examClock());
+  const hard=routF>=0.6; examState.rPath=hard?"schwer":"leicht";
+  const b=hard?EXAM.reading.hard:EXAM.reading.easy;
+  app.appendChild(el(`<div class="note">Dein erster Block lief ${hard?"<b>gut</b> → es folgt ein <b>schwererer</b>":"<b>durchwachsen</b> → es folgt ein <b>leichterer</b>"} Block (Adaptivität).</div>`));
+  const c=examHeader("📖 Reading – "+b.label,"Beantworte alle Fragen.");
+  c.appendChild(el(`<pre style="white-space:pre-wrap;font-family:inherit;font-size:14.5px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:12px">${b.passage}</pre>`));
+  const score=examMCQ(c,b.questions);app.appendChild(c);
+  const next=el('<button class="btn accent">Reading abschließen →</button>');
+  next.onclick=()=>{
+    const frac=score()/b.questions.length;
+    examState.reading = hard ? 30*(0.4*routF+0.6*frac) : 24*(0.4*routF+0.6*frac);
+    examListening1();
+  };
+  app.appendChild(next);
+}
+
+// ---- LISTENING (adaptiv) ----
+function examListening1(){
+  clear();app.appendChild(examClock());
+  const b=EXAM.listening.routing;
+  const c=examHeader("🎧 Listening – "+b.label,"Höre den Beitrag (Browser-Stimme) und beantworte die Fragen. Empfohlene Zeit für Listening gesamt: ~29 Min.");
+  c.appendChild(audioButton(b.script,"Anhören"));
+  const score=examMCQ(c,b.questions);app.appendChild(c);
+  const next=el('<button class="btn accent">Weiter →</button>');
+  next.onclick=()=>{const frac=score()/b.questions.length;examListening2(frac);};
+  app.appendChild(next);
+}
+function examListening2(routF){
+  clear();app.appendChild(examClock());
+  const hard=routF>=0.6; examState.lPath=hard?"schwer":"leicht";
+  const b=hard?EXAM.listening.hard:EXAM.listening.easy;
+  app.appendChild(el(`<div class="note">Listening-Folgeblock: ${hard?"<b>schwerer</b> (gute Leistung im ersten Block)":"<b>leichter</b>"} (Adaptivität).</div>`));
+  const c=examHeader("🎧 Listening – "+b.label,"Höre den Beitrag und beantworte die Fragen.");
+  c.appendChild(audioButton(b.script,"Anhören"));
+  const score=examMCQ(c,b.questions);app.appendChild(c);
+  const next=el('<button class="btn accent">Listening abschließen →</button>');
+  next.onclick=()=>{
+    const frac=score()/b.questions.length;
+    examState.listening = hard ? 30*(0.4*routF+0.6*frac) : 24*(0.4*routF+0.6*frac);
+    examWriting();
+  };
+  app.appendChild(next);
+}
+
+// ---- WRITING (nicht adaptiv) ----
+function examWriting(){
+  clear();app.appendChild(examClock());
+  const c=examHeader("✍️ Writing","Empfohlene Zeit: ~23 Min. Teil 1: Build a Sentence (automatisch bewertet). Teil 2: kurze E-Mail (Selbsteinschätzung).");
+  // Build a Sentence
+  c.appendChild(el('<h3>Teil 1 – Build a Sentence</h3>'));
+  const orders=[];
+  EXAM.writing.buildSentence.forEach((sentence,i)=>{
+    const words=sentence.replace(/\.$/,"").split(" ");
+    const box=el(`<div class="q"><div class="qt">Satz ${i+1}</div></div>`);
+    const answer=el('<div class="answerbox"></div>');const pool=el('<div class="row"></div>');const order=[];orders[i]={order,words};
+    shuffle(words).forEach(wd=>{const chip=el(`<span class="chip">${wd}</span>`);chip.onclick=()=>{order.push(wd);chip.classList.add("used");const a=el(`<span class="chip">${wd}</span>`);a.onclick=()=>{const idx=order.lastIndexOf(wd);if(idx>-1)order.splice(idx,1);a.remove();chip.classList.remove("used");};answer.appendChild(a);};pool.appendChild(chip);});
+    box.appendChild(answer);box.appendChild(pool);c.appendChild(box);
+  });
+  // Email
+  c.appendChild(el('<h3>Teil 2 – Write an Email</h3>'));
+  c.appendChild(el(`<div class="q"><div class="qt">${EXAM.writing.email.q}</div></div>`));
+  const ta=el('<textarea placeholder="Hier schreiben…"></textarea>');c.appendChild(ta);
+  const rateGetter=examSelfRate(c,"Selbsteinschätzung deiner E-Mail (Aufgabe erfüllt, Struktur, Ton, Sprache):");
+  app.appendChild(c);
+  const next=el('<button class="btn accent">Writing abschließen →</button>');
+  next.onclick=()=>{
+    let ok=0;orders.forEach(o=>{if(o.order.join(" ")===o.words.join(" "))ok++;});
+    const buildFrac=ok/orders.length;
+    const emailSelf=rateGetter()/5;
+    examState.writing = 30*(0.5*buildFrac + 0.5*emailSelf);
+    examSpeaking();
+  };
+  app.appendChild(next);
+}
+
+// ---- SPEAKING (nicht adaptiv) ----
+function examSpeaking(){
+  clear();app.appendChild(examClock());
+  const c=examHeader("🎙️ Speaking","Empfohlene Zeit: ~8 Min. Sprich laut, nimm dich auf und bewerte dich realistisch selbst.");
+  if(secureHint())c.appendChild(el(secureHint()));
+  const rates=[];
+  c.appendChild(el('<h3>Teil 1 – Listen and Repeat</h3>'));
+  EXAM.speaking.listenRepeat.forEach((sent,i)=>{
+    const box=el(`<div class="q"><div class="qt">Satz ${i+1}: anhören & exakt nachsprechen</div></div>`);
+    const play=el('<button class="btn ghost sm">▶ hören</button>');play.onclick=()=>speak(sent);
+    const rec=el('<button class="btn sm" style="margin-left:8px">● Aufnahme</button>');const player=el('<div style="margin-top:8px"></div>');
+    rec.onclick=()=>doRecordPlayback(player,rec);
+    box.appendChild(play);box.appendChild(rec);box.appendChild(player);
+    rates.push(examSelfRateInline(box,"Wie genau war deine Wiederholung?"));
+    c.appendChild(box);
+  });
+  c.appendChild(el('<h3>Teil 2 – Take an Interview</h3>'));
+  EXAM.speaking.interview.forEach((pr,i)=>{
+    const box=el(`<div class="q"><div class="qt">${i+1}. ${pr.q}</div></div>`);
+    box.appendChild(audioButton(pr.q,"Frage hören"));
+    const rec=el('<button class="btn sm" style="margin-left:8px">● Antwort aufnehmen</button>');const player=el('<div style="margin-top:8px"></div>');
+    rec.onclick=()=>doRecordPlayback(player,rec);
+    box.appendChild(rec);box.appendChild(player);
+    rates.push(examSelfRateInline(box,"Wie flüssig & vollständig war deine Antwort?"));
+    const mb=el('<button class="btn ghost sm" style="margin-top:8px">Musterantwort</button>');const model=el(`<div class="model">${pr.model}</div>`);
+    mb.onclick=()=>model.classList.toggle("show");box.appendChild(mb);box.appendChild(model);
+    c.appendChild(box);
+  });
+  app.appendChild(c);
+  const next=el('<button class="btn accent">Test beenden & auswerten →</button>');
+  next.onclick=()=>{
+    const avg=rates.reduce((s,g)=>s+g(),0)/rates.length;
+    examState.speaking = 30*(avg/5);
+    examResult();
+  };
+  app.appendChild(next);
+}
+function examSelfRateInline(container,label){
+  const wrap=el(`<div class="row" style="margin-top:8px"><span class="small muted">${label}</span></div>`);
+  let val=3;for(let n=1;n<=5;n++){const b=el(`<button class="btn ghost sm" style="min-width:38px">${n}</button>`);if(n===3)b.classList.add("accent");b.onclick=()=>{val=n;wrap.querySelectorAll("button").forEach(x=>x.classList.remove("accent"));b.classList.add("accent");};wrap.appendChild(b);}
+  container.appendChild(wrap);return ()=>val;
+}
+
+// ---- ERGEBNIS ----
+function examResult(){
+  stopExamTimer();clear();
+  const r=Math.round(examState.reading),l=Math.round(examState.listening),w=Math.round(examState.writing),s=Math.round(examState.speaking);
+  const total=r+l+w+s;
+  let band,cefr;
+  if(total>=110){band="5.5–6";cefr="C1/C2";}else if(total>=100){band="5";cefr="C1";}
+  else if(total>=90){band="4.5";cefr="B2+/C1";}else if(total>=72){band="4";cefr="B2";}
+  else if(total>=60){band="3.5";cefr="B1+/B2";}else{band="≤3";cefr="≤B1";}
+  const reach=total>=100;
+  setBest("reading",Math.max(progress["reading"]||0,Math.round(r/30*100)));
+  setBest("listening",Math.max(progress["listening"]||0,Math.round(l/30*100)));
+  app.appendChild(el(`<div class="card">
+    <h2>🎓 Ergebnis der Voll-Simulation</h2>
+    <div class="kpi">
+      <div class="b"><div class="n">${total}</div><div class="l">geschätzt /120</div></div>
+      <div class="b"><div class="n">${band}</div><div class="l">Band (1–6)</div></div>
+      <div class="b"><div class="n">${cefr}</div><div class="l">CEFR</div></div>
+    </div>
+    <div class="result ${reach?'good':'mid'}" style="margin-top:14px">${reach?'🎯 Auf Kurs zum Mannheim-Ziel (≥100/C1)!':'Noch unter dem Mannheim-Ziel von 100/120 – weiter üben!'}</div>
+    <h3>Bereiche (je 0–30)</h3>
+    <div class="kpi">
+      <div class="b"><div class="n">${r}</div><div class="l">Reading<br>(${examState.rPath} Block)</div></div>
+      <div class="b"><div class="n">${l}</div><div class="l">Listening<br>(${examState.lPath} Block)</div></div>
+      <div class="b"><div class="n">${w}</div><div class="l">Writing</div></div>
+      <div class="b"><div class="n">${s}</div><div class="l">Speaking</div></div>
+    </div>
+    <p class="muted small" style="margin-top:12px">Reading & Listening wurden <b>nach Blockschwierigkeit gewichtet</b>: Wer in den schweren Block geroutet wurde und ihn meistert, erreicht den höchsten Score; der leichte Pfad ist – wie im echten adaptiven Test – nach oben gedeckelt. Writing/Speaking beruhen auf deiner Selbsteinschätzung und sind als Orientierung zu verstehen, keine offizielle Bewertung.</p>
+  </div>`));
+  const again=el('<button class="btn">Nochmal simulieren</button>');again.onclick=viewExam;
+  app.appendChild(again);app.appendChild(backBtn());
+}
+
+/* ---------- Service Worker registrieren (PWA) ---------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
+}
+
+/* ---------- Start ---------- */
+dashboard();
+</script>
+</body>
+</html>
