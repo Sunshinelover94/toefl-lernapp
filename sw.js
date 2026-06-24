@@ -1,5 +1,5 @@
 /* Service Worker – cacht die App, damit sie nach dem ersten Laden offline läuft. */
-const CACHE = "toefl-lernapp-v2";
+const CACHE = "toefl-lernapp-v3";
 const ASSETS = [
   "./",
   "./index.html",

@@ -677,7 +677,7 @@ function renderGlobalBar(){
 /* ---------- Helfer ---------- */
 const app=document.getElementById("app");
 function el(html){const d=document.createElement("div");d.innerHTML=html.trim();return d.firstElementChild;}
-function clear(){app.innerHTML="";window.scrollTo(0,0);}
+function clear(){stopAudio();app.innerHTML="";window.scrollTo(0,0);}
 function backBtn(){const b=el('<button class="back">← Zurück zur Übersicht</button>');b.onclick=dashboard;return b;}
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
@@ -736,9 +736,48 @@ function speak(text,rate){
   u.lang="en-US";u.rate=rate||0.95;if(ttsVoice)u.voice=ttsVoice;
   speechSynthesis.speak(u);
 }
-function audioButton(text,label){
+/* ---------- Echte US-Stimmen (ElevenLabs, gehostet) + Browser-Fallback ---------- */
+const AUDIO_BASE="https://d8j0ntlcm91z4.cloudfront.net/user_3COZbw4bfGNeTzs7TisN6lUuit7/";
+const AUDIO={
+ cr1:"hf_20260624_192152_742ce8a8-1107-4a52-b9b2-55950ce9e340.mp3",
+ cr2:"hf_20260624_192202_ac0503b1-e1fb-4714-b8de-3109b00afe76.mp3",
+ cr3:"hf_20260624_192208_99393a21-b7da-4dfb-9bb3-0e8e74358ca5.mp3",
+ conv1:"hf_20260624_192215_771b44ce-c2c5-4304-af13-bdf51d80faa9.mp3",
+ conv2:"hf_20260624_192227_cb9844a9-1127-4f1a-95a8-e222d6619caa.mp3",
+ conv3:"hf_20260624_192232_b7d4105a-88a7-44f0-8510-48148849b22e.mp3",
+ conv4:"hf_20260624_192239_e539907d-f628-4fb2-9b5a-763891f51f98.mp3",
+ conv5:"hf_20260624_192243_2df645cb-a585-43d4-8ee0-be80f7ae02c6.mp3",
+ conv6:"hf_20260624_192248_5be152f5-3c99-415d-ae35-4a0b74cf62a8.mp3",
+ ann:"hf_20260624_192254_83a258f7-9b09-49ab-aac2-5a66ed8fc4cc.mp3",
+ talkOpp:"hf_20260624_192316_b5d85245-f7ab-4022-9405-de231b51ade9.mp3",
+ talkComp:"hf_20260624_192323_1dd54dd3-16bb-4df6-bdd4-abd8732d9cb6.mp3",
+ lr1:"hf_20260624_192330_ecd4ba44-7ed1-463a-b62a-22b05bfcb5cd.mp3",
+ lr2:"hf_20260624_192336_368278cb-2cc9-47b8-a080-861a787fd2e0.mp3",
+ lr3:"hf_20260624_192342_db010d50-336b-425a-99f5-937a3a00afda.mp3",
+ lr4:"hf_20260624_192347_e8adc53d-7a41-4e6b-977b-ba512562852c.mp3",
+ lr5:"hf_20260624_192355_3cb733eb-d86b-4add-b4eb-52739afd36df.mp3",
+ lr6:"hf_20260624_192400_1c30432b-988f-470e-a5ac-04d30c8e232e.mp3",
+ lr7:"hf_20260624_192405_5af87e91-b3f1-42c9-a570-e09966ccc2cd.mp3"
+};
+let currentAudio=null;
+function stopAudio(){try{if(currentAudio){currentAudio.pause();currentAudio.src="";currentAudio=null;}}catch(e){}if('speechSynthesis'in window)speechSynthesis.cancel();}
+// Spielt eine Liste von MP3-Dateinamen nacheinander ab (z. B. Gespräch mit 2 Sprechern); bei Fehler -> Browser-Stimme.
+function playAudio(files,fallbackText,rate){
+  stopAudio();
+  if(!files||!files.length||!files[0]){speak(fallbackText,rate);return;}
+  let i=0;
+  const next=()=>{
+    if(i>=files.length){currentAudio=null;return;}
+    const a=new Audio(AUDIO_BASE+files[i]);currentAudio=a;
+    a.onended=()=>{i++;next();};
+    a.onerror=()=>{currentAudio=null;speak(fallbackText,rate);};
+    a.play().catch(()=>{currentAudio=null;speak(fallbackText,rate);});
+  };
+  next();
+}
+function audioButton(text,label,files){
   const b=el(`<button class="btn ghost audiobtn">▶ ${label||"Abspielen"}</button>`);
-  b.onclick=()=>speak(text);
+  b.onclick=()=>playAudio(files,text);
   return b;
 }
 
@@ -847,7 +886,7 @@ function viewReading(){
 function viewListening(){
   clear();app.appendChild(backBtn());
   const l=CONTENT.listening;
-  app.appendChild(el(`<div class="note">🎧 Die Hörtexte werden von der eingebauten Browser-Stimme vorgelesen (am natürlichsten in Chrome/Edge). Du kannst sie mehrfach abspielen. Im echten Test hörst du sie nur begrenzt oft.</div>`));
+  app.appendChild(el(`<div class="note">🎧 Die Hörtexte werden mit echten US-Stimmen vorgelesen (Gespräche mit zwei Sprechern, w/m). Du kannst sie mehrfach abspielen. Im echten Test hörst du sie nur begrenzt oft.</div>`));
   let total=0,correctAll=0,scored=0;const need=4;
   function maybeScore(n,pct){total+=n;correctAll+=Math.round(pct/100*n);scored++;if(scored>=need)setBest("listening",Math.round(correctAll/total*100));}
 
@@ -855,14 +894,16 @@ function viewListening(){
   const cr=l.chooseResponse;
   const c1=el(`<div class="card"><h2>${cr.title}</h2><p class="muted small">${cr.intro}</p></div>`);
   const qs1=cr.items.map(it=>({q:"Welche Antwort passt?",options:it.options,answer:it.answer,explain:it.explain}));
-  cr.items.forEach((it,i)=>{const b=audioButton(it.audio,`Äußerung ${i+1} anhören`);b.classList.add("sm");b.style.marginBottom="4px";c1.appendChild(b);});
+  const crA=[AUDIO.cr1,AUDIO.cr2,AUDIO.cr3];
+  cr.items.forEach((it,i)=>{const b=audioButton(it.audio,`Äußerung ${i+1} anhören`,[crA[i]]);b.classList.add("sm");b.style.marginBottom="4px";c1.appendChild(b);});
   buildQuiz(c1,qs1,(pct)=>maybeScore(qs1.length,pct));
   app.appendChild(c1);
 
   // Conversation / Announcement / Talk
+  const secAudio=new Map([[l.conversation,[AUDIO.conv1,AUDIO.conv2,AUDIO.conv3,AUDIO.conv4,AUDIO.conv5,AUDIO.conv6]],[l.announcement,[AUDIO.ann]],[l.talk,[AUDIO.talkOpp]]]);
   [l.conversation,l.announcement,l.talk].forEach(sec=>{
     const c=el(`<div class="card"><h2>${sec.title}</h2><p class="muted small">${sec.intro}</p></div>`);
-    c.appendChild(audioButton(sec.script,"Anhören"));
+    c.appendChild(audioButton(sec.script,"Anhören",secAudio.get(sec)));
     const tog=el('<button class="btn ghost sm" style="margin-left:8px">Skript anzeigen</button>');
     const scr=el(`<pre class="hidden" style="white-space:pre-wrap;font-family:inherit;font-size:14px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px">${sec.script}</pre>`);
     tog.onclick=()=>{scr.classList.toggle("hidden");tog.textContent=scr.classList.contains("hidden")?"Skript anzeigen":"Skript verbergen";};
@@ -893,7 +934,7 @@ function viewSpeaking(){
   let lrScore=0,lrCount=0;
   lr.sentences.forEach((sent,i)=>{
     const box=el(`<div class="q"><div class="qt">${i+1}. <span class="muted">(Satz anhören & nachsprechen)</span></div></div>`);
-    const play=el('<button class="btn ghost sm">▶ Satz hören</button>');play.onclick=()=>speak(sent);
+    const play=el('<button class="btn ghost sm">▶ Satz hören</button>');play.onclick=()=>playAudio([[AUDIO.lr1,AUDIO.lr2,AUDIO.lr3,AUDIO.lr4,AUDIO.lr5,AUDIO.lr6,AUDIO.lr7][i]],sent);
     const rec=el('<button class="btn sm" style="margin-left:8px">● Aufnahme</button>');
     const fb=el('<div class="small" style="margin-top:10px"></div>');
     const showS=el('<button class="btn ghost sm" style="margin-left:8px">Satz zeigen</button>');
@@ -1240,8 +1281,8 @@ function examReading2(routF){
 function examListening1(){
   clear();app.appendChild(examClock());
   const b=EXAM.listening.routing;
-  const c=examHeader("🎧 Listening – "+b.label,"Höre den Beitrag (Browser-Stimme) und beantworte die Fragen. Empfohlene Zeit für Listening gesamt: ~29 Min.");
-  c.appendChild(audioButton(b.script,"Anhören"));
+  const c=examHeader("🎧 Listening – "+b.label,"Höre den Beitrag (echte Stimme) und beantworte die Fragen. Empfohlene Zeit für Listening gesamt: ~29 Min.");
+  c.appendChild(audioButton(b.script,"Anhören",[AUDIO.talkOpp]));
   const score=examMCQ(c,b.questions);app.appendChild(c);
   const next=el('<button class="btn accent">Weiter →</button>');
   next.onclick=()=>{const frac=score()/b.questions.length;examListening2(frac);};
@@ -1253,7 +1294,7 @@ function examListening2(routF){
   const b=hard?EXAM.listening.hard:EXAM.listening.easy;
   app.appendChild(el(`<div class="note">Listening-Folgeblock: ${hard?"<b>schwerer</b> (gute Leistung im ersten Block)":"<b>leichter</b>"} (Adaptivität).</div>`));
   const c=examHeader("🎧 Listening – "+b.label,"Höre den Beitrag und beantworte die Fragen.");
-  c.appendChild(audioButton(b.script,"Anhören"));
+  c.appendChild(audioButton(b.script,"Anhören",[hard?AUDIO.talkComp:AUDIO.ann]));
   const score=examMCQ(c,b.questions);app.appendChild(c);
   const next=el('<button class="btn accent">Listening abschließen →</button>');
   next.onclick=()=>{
@@ -1304,7 +1345,7 @@ function examSpeaking(){
   c.appendChild(el('<h3>Teil 1 – Listen and Repeat</h3>'));
   EXAM.speaking.listenRepeat.forEach((sent,i)=>{
     const box=el(`<div class="q"><div class="qt">Satz ${i+1}: anhören & exakt nachsprechen</div></div>`);
-    const play=el('<button class="btn ghost sm">▶ hören</button>');play.onclick=()=>speak(sent);
+    const play=el('<button class="btn ghost sm">▶ hören</button>');play.onclick=()=>playAudio([[AUDIO.lr2,AUDIO.lr6,AUDIO.lr7][i]],sent);
     const rec=el('<button class="btn sm" style="margin-left:8px">● Aufnahme</button>');const player=el('<div style="margin-top:8px"></div>');
     rec.onclick=()=>doRecordPlayback(player,rec);
     box.appendChild(play);box.appendChild(rec);box.appendChild(player);
