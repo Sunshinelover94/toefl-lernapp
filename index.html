@@ -737,27 +737,27 @@ function speak(text,rate){
   speechSynthesis.speak(u);
 }
 /* ---------- Echte US-Stimmen (ElevenLabs, gehostet) + Browser-Fallback ---------- */
-const AUDIO_BASE="https://d8j0ntlcm91z4.cloudfront.net/user_3COZbw4bfGNeTzs7TisN6lUuit7/";
+const AUDIO_BASE="audio/";
 const AUDIO={
- cr1:"hf_20260624_192152_742ce8a8-1107-4a52-b9b2-55950ce9e340.mp3",
- cr2:"hf_20260624_192202_ac0503b1-e1fb-4714-b8de-3109b00afe76.mp3",
- cr3:"hf_20260624_192208_99393a21-b7da-4dfb-9bb3-0e8e74358ca5.mp3",
- conv1:"hf_20260624_192215_771b44ce-c2c5-4304-af13-bdf51d80faa9.mp3",
- conv2:"hf_20260624_192227_cb9844a9-1127-4f1a-95a8-e222d6619caa.mp3",
- conv3:"hf_20260624_192232_b7d4105a-88a7-44f0-8510-48148849b22e.mp3",
- conv4:"hf_20260624_192239_e539907d-f628-4fb2-9b5a-763891f51f98.mp3",
- conv5:"hf_20260624_192243_2df645cb-a585-43d4-8ee0-be80f7ae02c6.mp3",
- conv6:"hf_20260624_192248_5be152f5-3c99-415d-ae35-4a0b74cf62a8.mp3",
- ann:"hf_20260624_192254_83a258f7-9b09-49ab-aac2-5a66ed8fc4cc.mp3",
- talkOpp:"hf_20260624_192316_b5d85245-f7ab-4022-9405-de231b51ade9.mp3",
- talkComp:"hf_20260624_192323_1dd54dd3-16bb-4df6-bdd4-abd8732d9cb6.mp3",
- lr1:"hf_20260624_192330_ecd4ba44-7ed1-463a-b62a-22b05bfcb5cd.mp3",
- lr2:"hf_20260624_192336_368278cb-2cc9-47b8-a080-861a787fd2e0.mp3",
- lr3:"hf_20260624_192342_db010d50-336b-425a-99f5-937a3a00afda.mp3",
- lr4:"hf_20260624_192347_e8adc53d-7a41-4e6b-977b-ba512562852c.mp3",
- lr5:"hf_20260624_192355_3cb733eb-d86b-4add-b4eb-52739afd36df.mp3",
- lr6:"hf_20260624_192400_1c30432b-988f-470e-a5ac-04d30c8e232e.mp3",
- lr7:"hf_20260624_192405_5af87e91-b3f1-42c9-a570-e09966ccc2cd.mp3"
+ cr1:"cr1.mp3",
+ cr2:"cr2.mp3",
+ cr3:"cr3.mp3",
+ conv1:"conv1.mp3",
+ conv2:"conv2.mp3",
+ conv3:"conv3.mp3",
+ conv4:"conv4.mp3",
+ conv5:"conv5.mp3",
+ conv6:"conv6.mp3",
+ ann:"ann.mp3",
+ talkOpp:"talkOpp.mp3",
+ talkComp:"talkComp.mp3",
+ lr1:"lr1.mp3",
+ lr2:"lr2.mp3",
+ lr3:"lr3.mp3",
+ lr4:"lr4.mp3",
+ lr5:"lr5.mp3",
+ lr6:"lr6.mp3",
+ lr7:"lr7.mp3"
 };
 let currentAudio=null;
 function stopAudio(){try{if(currentAudio){currentAudio.pause();currentAudio.src="";currentAudio=null;}}catch(e){}if('speechSynthesis'in window)speechSynthesis.cancel();}

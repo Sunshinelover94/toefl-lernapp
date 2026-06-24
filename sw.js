@@ -1,11 +1,30 @@
 /* Service Worker – cacht die App, damit sie nach dem ersten Laden offline läuft. */
-const CACHE = "toefl-lernapp-v3";
+const CACHE = "toefl-lernapp-v4";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./icon-192.png",
-  "./icon-512.png"
+  "./icon-512.png",
+  "./audio/cr1.mp3",
+  "./audio/cr2.mp3",
+  "./audio/cr3.mp3",
+  "./audio/conv1.mp3",
+  "./audio/conv2.mp3",
+  "./audio/conv3.mp3",
+  "./audio/conv4.mp3",
+  "./audio/conv5.mp3",
+  "./audio/conv6.mp3",
+  "./audio/ann.mp3",
+  "./audio/talkOpp.mp3",
+  "./audio/talkComp.mp3",
+  "./audio/lr1.mp3",
+  "./audio/lr2.mp3",
+  "./audio/lr3.mp3",
+  "./audio/lr4.mp3",
+  "./audio/lr5.mp3",
+  "./audio/lr6.mp3",
+  "./audio/lr7.mp3"
 ];
 
 self.addEventListener("install", (e) => {
