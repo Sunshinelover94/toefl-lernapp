@@ -1,5 +1,5 @@
 /* Service Worker – cacht die App, damit sie nach dem ersten Laden offline läuft. */
-const CACHE = "toefl-lernapp-v6";
+const CACHE = "toefl-lernapp-v7";
 // Shell-Assets müssen vorhanden sein (Install scheitert sonst); Audios werden fehlertolerant nachgecacht.
 const CORE = [
   "./",
