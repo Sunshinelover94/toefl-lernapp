@@ -1732,8 +1732,9 @@ function viewMock(){
 /* ============================================================
    VOLL-SIMULATION (viewExam) – adaptiv in Reading & Listening
    ============================================================ */
-let examUid=0, examInterval=null, examLeft=0;
+let examUid=0, examInterval=null, examLeft=0, sectionLeft=0, sectionLabel="";
 const examState={reading:0,listening:0,writing:0,speaking:0,rPath:"",lPath:"",review:[]};
+function setSection(sec,label){sectionLeft=sec;sectionLabel=label;}  // Richtzeit-Budget je Sektion (advisory)
 
 function examMCQ(container,questions){
   examUid++; const uid=examUid, sel={};
@@ -1758,7 +1759,10 @@ function examSelfRate(container,label){
   for(let n=1;n<=5;n++){const b=el(`<button class="btn ghost sm" style="min-width:42px">${n}</button>`);if(n===3)b.classList.add("accent");b.onclick=()=>{val=n;row.querySelectorAll("button").forEach(x=>x.classList.remove("accent"));b.classList.add("accent");};row.appendChild(b);}
   container.appendChild(wrap); return ()=>val;
 }
-function examClock(){return el(`<div class="card" style="position:sticky;top:64px;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:12px 16px"><span class="small muted">Gesamtzeit</span><span class="timer" id="examclock">${fmt(examLeft)}</span></div>`);}
+function examClock(){return el(`<div class="card" style="position:sticky;top:64px;z-index:10;padding:10px 16px">
+    <div style="display:flex;justify-content:space-between;align-items:center"><span class="small muted">Gesamtzeit</span><span class="timer" id="examclock">${fmt(examLeft)}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span class="small muted" id="sectionlabel">${sectionLabel?"Richtzeit "+sectionLabel:""}</span><span class="small" id="sectionclock" style="font-variant-numeric:tabular-nums;font-weight:700;color:${sectionLeft<=0?'var(--bad)':'var(--muted)'}">${sectionLeft>0?fmt(sectionLeft):(sectionLabel?"Richtzeit erreicht":"")}</span></div>
+  </div>`);}
 function examHeader(sectionTitle,sub){
   const c=el(`<div class="card"><h2>${sectionTitle}</h2><p class="muted small">${sub}</p></div>`);
   return c;
@@ -1766,9 +1770,13 @@ function examHeader(sectionTitle,sub){
 function startExamTimer(){
   examLeft=90*60; // R30+L29+W23+S8 ~ 90 min
   if(examInterval)clearInterval(examInterval);
-  examInterval=setInterval(()=>{examLeft--;const c=document.getElementById("examclock");if(c){c.textContent=examLeft>0?fmt(examLeft):"Zeit um";if(examLeft<=300)c.classList.add("warn");}if(examLeft<=0){clearInterval(examInterval);examInterval=null;}},1000);
+  examInterval=setInterval(()=>{
+    examLeft--;const c=document.getElementById("examclock");if(c){c.textContent=examLeft>0?fmt(examLeft):"Zeit um";if(examLeft<=300)c.classList.add("warn");}
+    if(sectionLeft>0)sectionLeft--;const sc=document.getElementById("sectionclock");if(sc){sc.textContent=sectionLeft>0?fmt(sectionLeft):(sectionLabel?"Richtzeit erreicht":"");sc.style.color=sectionLeft<=0?"var(--bad)":"var(--muted)";}const sl=document.getElementById("sectionlabel");if(sl)sl.textContent=sectionLabel?"Richtzeit "+sectionLabel:"";
+    if(examLeft<=0){clearInterval(examInterval);examInterval=null;}
+  },1000);
 }
-function stopExamTimer(){if(examInterval){clearInterval(examInterval);examInterval=null;}}
+function stopExamTimer(){if(examInterval){clearInterval(examInterval);examInterval=null;}sectionLeft=0;sectionLabel="";}
 
 function viewExam(){
   clear();
@@ -1787,7 +1795,7 @@ function viewExam(){
 
 // ---- READING (adaptiv) ----
 function examReading1(){
-  clear();app.appendChild(examClock());
+  setSection(30*60,"Reading");clear();app.appendChild(examClock());
   const b=EXAM.reading.routing;
   const c=examHeader("📖 Reading – "+b.label,"Lies die Passage und beantworte alle Fragen. Empfohlene Zeit für Reading gesamt: ~30 Min.");
   c.appendChild(el(`<pre style="white-space:pre-wrap;font-family:inherit;font-size:14.5px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:12px">${b.passage}</pre>`));
@@ -1816,7 +1824,7 @@ function examReading2(routF){
 
 // ---- LISTENING (adaptiv) ----
 function examListening1(){
-  clear();app.appendChild(examClock());
+  setSection(29*60,"Listening");clear();app.appendChild(examClock());
   const b=EXAM.listening.routing;
   const c=examHeader("🎧 Listening – "+b.label,"Höre den Beitrag (echte Stimme) und beantworte die Fragen. Empfohlene Zeit für Listening gesamt: ~29 Min.");
   c.appendChild(audioButton(b.script,"Anhören",[AUDIO.talkOpp]));
@@ -1845,30 +1853,36 @@ function examListening2(routF){
 
 // ---- WRITING (nicht adaptiv) ----
 function examWriting(){
-  clear();app.appendChild(examClock());
-  const c=examHeader("✍️ Writing","Empfohlene Zeit: ~23 Min. Teil 1: Build a Sentence (automatisch bewertet). Teil 2: kurze E-Mail (Selbsteinschätzung).");
-  // Build a Sentence
+  setSection(23*60,"Writing");clear();app.appendChild(examClock());
+  const c=examHeader("✍️ Writing","Empfohlene Zeit: ~23 Min. Teil 1: Build a Sentence (auto). Teil 2: E-Mail. Teil 3: Academic Discussion (Selbsteinschätzung).");
+  // Teil 1 – Build a Sentence (aus dem grossen CONTENT-Pool, Rotation)
   c.appendChild(el('<h3>Teil 1 – Build a Sentence</h3>'));
   const orders=[];
-  EXAM.writing.buildSentence.forEach((sentence,i)=>{
+  pickItems("bs@exam",CONTENT.writing.buildSentence.items,4).forEach((sentence,i)=>{
     const words=sentence.replace(/\.$/,"").split(" ");
     const box=el(`<div class="q"><div class="qt">Satz ${i+1}</div></div>`);
     const answer=el('<div class="answerbox"></div>');const pool=el('<div class="row"></div>');const order=[];orders[i]={order,words};
     shuffle(words).forEach(wd=>{const chip=el(`<span class="chip">${wd}</span>`);chip.onclick=()=>{order.push(wd);chip.classList.add("used");const a=el(`<span class="chip">${wd}</span>`);a.onclick=()=>{const idx=order.lastIndexOf(wd);if(idx>-1)order.splice(idx,1);a.remove();chip.classList.remove("used");};answer.appendChild(a);};pool.appendChild(chip);});
     box.appendChild(answer);box.appendChild(pool);c.appendChild(box);
   });
-  // Email
+  // Teil 2 – Email (aus dem grossen Pool)
+  const emailPr=pickItem("em@exam",CONTENT.writing.email.prompts);
   c.appendChild(el('<h3>Teil 2 – Write an Email</h3>'));
-  c.appendChild(el(`<div class="q"><div class="qt">${EXAM.writing.email.q}</div></div>`));
-  const ta=el('<textarea placeholder="Hier schreiben…"></textarea>');c.appendChild(ta);
-  const rateGetter=examSelfRate(c,"Selbsteinschätzung deiner E-Mail (Aufgabe erfüllt, Struktur, Ton, Sprache):");
+  c.appendChild(el(`<div class="q"><div class="qt">${emailPr.q}</div></div>`));
+  c.appendChild(el('<textarea placeholder="Hier schreiben…"></textarea>'));
+  const emailRate=examSelfRate(c,"Selbsteinschätzung deiner E-Mail (Aufgabe erfüllt, Struktur, Ton, Sprache):");
+  // Teil 3 – Academic Discussion (aus dem grossen Pool)
+  const discPr=pickItem("disc@exam",CONTENT.writing.discussion.prompts);
+  c.appendChild(el('<h3>Teil 3 – Write for an Academic Discussion</h3>'));
+  c.appendChild(el(`<div class="q"><div class="qt">${discPr.q}</div></div>`));
+  c.appendChild(el('<textarea placeholder="Hier schreiben…"></textarea>'));
+  const discRate=examSelfRate(c,"Selbsteinschätzung deiner Discussion (Meinung + Begründung + Beispiel, Sprache):");
   app.appendChild(c);
   const next=el('<button class="btn accent">Writing abschließen →</button>');
   next.onclick=()=>{
     let ok=0;orders.forEach(o=>{if(o.order.join(" ")===o.words.join(" "))ok++;});
-    const buildFrac=ok/orders.length;
-    const emailSelf=rateGetter()/5;
-    examState.writing = 30*(0.5*buildFrac + 0.5*emailSelf);
+    const buildFrac=orders.length?ok/orders.length:0;
+    examState.writing = 30*(0.4*buildFrac + 0.3*(emailRate()/5) + 0.3*(discRate()/5));
     examSpeaking();
   };
   app.appendChild(next);
@@ -1876,14 +1890,17 @@ function examWriting(){
 
 // ---- SPEAKING (nicht adaptiv) ----
 function examSpeaking(){
-  clear();app.appendChild(examClock());
+  setSection(8*60,"Speaking");clear();app.appendChild(examClock());
   const c=examHeader("🎙️ Speaking","Empfohlene Zeit: ~8 Min. Sprich laut, nimm dich auf und bewerte dich realistisch selbst.");
   if(secureHint())c.appendChild(el(secureHint()));
   const rates=[];
   c.appendChild(el('<h3>Teil 1 – Listen and Repeat</h3>'));
-  EXAM.speaking.listenRepeat.forEach((sent,i)=>{
+  const lrSrc=CONTENT.speaking.listenRepeat;
+  const lrMp3=[AUDIO.lr1,AUDIO.lr2,AUDIO.lr3,AUDIO.lr4,AUDIO.lr5,AUDIO.lr6,AUDIO.lr7];
+  const lrPool=lrSrc.sentences.map((t,i)=>({id:"lr_orig"+i,text:t,mp3:[lrMp3[i]]})).concat((lrSrc.items||[]).map(o=>({id:o.id,text:o.text})));
+  pickItems("lr@exam",lrPool,3).forEach((it,i)=>{
     const box=el(`<div class="q"><div class="qt">Satz ${i+1}: anhören & exakt nachsprechen</div></div>`);
-    const play=el('<button class="btn ghost sm">▶ hören</button>');play.onclick=()=>playAudio([[AUDIO.lr2,AUDIO.lr6,AUDIO.lr7][i]],sent);
+    const play=el('<button class="btn ghost sm">▶ hören</button>');play.onclick=()=>playAudio(it.mp3,it.text);
     const rec=el('<button class="btn sm" style="margin-left:8px">● Aufnahme</button>');const player=el('<div style="margin-top:8px"></div>');
     rec.onclick=()=>doRecordPlayback(player,rec);
     box.appendChild(play);box.appendChild(rec);box.appendChild(player);
@@ -1891,7 +1908,7 @@ function examSpeaking(){
     c.appendChild(box);
   });
   c.appendChild(el('<h3>Teil 2 – Take an Interview</h3>'));
-  EXAM.speaking.interview.forEach((pr,i)=>{
+  pickItems("iv@exam",CONTENT.speaking.interview.prompts,2).forEach((pr,i)=>{
     const box=el(`<div class="q"><div class="qt">${i+1}. ${pr.q}</div></div>`);
     box.appendChild(audioButton(pr.q,"Frage hören"));
     const rec=el('<button class="btn sm" style="margin-left:8px">● Antwort aufnehmen</button>');const player=el('<div style="margin-top:8px"></div>');
@@ -1922,6 +1939,7 @@ function examResult(){
   stopExamTimer();clear();
   const r=Math.round(examState.reading),l=Math.round(examState.listening),w=Math.round(examState.writing),s=Math.round(examState.speaking);
   const total=r+l+w+s;
+  const sb=(x)=>Math.max(1,Math.min(6,Math.round(x/5)));  // 0–30 -> 1–6 Band je Sektion
   let band,cefr;
   if(total>=110){band="5.5–6";cefr="C1/C2";}else if(total>=100){band="5";cefr="C1";}
   else if(total>=90){band="4.5";cefr="B2+/C1";}else if(total>=72){band="4";cefr="B2";}
@@ -1937,12 +1955,12 @@ function examResult(){
       <div class="b"><div class="n">${cefr}</div><div class="l">CEFR</div></div>
     </div>
     <div class="result ${reach?'good':'mid'}" style="margin-top:14px">${reach?'🎯 Auf Kurs zum Mannheim-Ziel (≥100/C1)!':'Noch unter dem Mannheim-Ziel von 100/120 – weiter üben!'}</div>
-    <h3>Bereiche (je 0–30)</h3>
+    <h3>Bereiche (je 0–30 · Band 1–6)</h3>
     <div class="kpi">
-      <div class="b"><div class="n">${r}</div><div class="l">Reading<br>(${examState.rPath} Block)</div></div>
-      <div class="b"><div class="n">${l}</div><div class="l">Listening<br>(${examState.lPath} Block)</div></div>
-      <div class="b"><div class="n">${w}</div><div class="l">Writing</div></div>
-      <div class="b"><div class="n">${s}</div><div class="l">Speaking</div></div>
+      <div class="b"><div class="n">${r}</div><div class="l">Reading · Band ${sb(r)}<br>(${examState.rPath} Block)</div></div>
+      <div class="b"><div class="n">${l}</div><div class="l">Listening · Band ${sb(l)}<br>(${examState.lPath} Block)</div></div>
+      <div class="b"><div class="n">${w}</div><div class="l">Writing · Band ${sb(w)}</div></div>
+      <div class="b"><div class="n">${s}</div><div class="l">Speaking · Band ${sb(s)}</div></div>
     </div>
     <p class="muted small" style="margin-top:12px">Reading & Listening wurden <b>nach Blockschwierigkeit gewichtet</b>: Wer in den schweren Block geroutet wurde und ihn meistert, erreicht den höchsten Score; der leichte Pfad ist – wie im echten adaptiven Test – nach oben gedeckelt. Writing/Speaking beruhen auf deiner Selbsteinschätzung und sind als Orientierung zu verstehen, keine offizielle Bewertung.</p>
   </div>`));
