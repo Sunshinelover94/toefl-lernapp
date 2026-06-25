@@ -1148,9 +1148,27 @@ function pickItems(poolKey,items,count){
 }
 function pickItem(poolKey,items){return pickItems(poolKey,items,1)[0];}
 
+/* ---------- Statistik / Verlauf / Fehlerprotokoll ---------- */
+const HKEY="toefl_history_v1";   // Verlauf: [{t, module, pct}]
+const MKEY="toefl_mistakes_v1";  // Fehler:  [{q, options, answer, explain, type, tag}]
+function loadArr(k){try{const a=JSON.parse(localStorage.getItem(k)||"[]");return Array.isArray(a)?a:[];}catch(e){return [];}}
+function saveArr(k,a){try{localStorage.setItem(k,JSON.stringify(a));}catch(e){}}
+function logAttempt(module,pct){const h=loadArr(HKEY);h.push({t:Date.now(),module:module,pct:pct});saveArr(HKEY,h.slice(-300));}
+function logWrong(it){const m=loadArr(MKEY);if(!m.some(x=>x.q===it.q)){m.push(it);saveArr(MKEY,m.slice(-120));}}
+function resolveMistake(q){const m=loadArr(MKEY);const f=m.filter(x=>x.q!==q);if(f.length!==m.length)saveArr(MKEY,f);}
+
+/* ---------- Vokabel-SRS (Leitner) ---------- */
+const SKEY="toefl_srs_v1";       // {wort:{box:1..5, due:tagindex}}
+const SRS_DAYS=[0,1,2,4,8,16];   // box -> Tage bis faellig
+function loadSrs(){try{return JSON.parse(localStorage.getItem(SKEY)||"{}")||{};}catch(e){return {};}}
+function saveSrs(s){try{localStorage.setItem(SKEY,JSON.stringify(s));}catch(e){}}
+function todayIdx(){return Math.floor(Date.now()/86400000);}
+function srsDueCount(){const s=loadSrs(),t=todayIdx();let due=0;CONTENT.vocab.forEach(([w])=>{const c=s[w];if(!c||c.due<=t)due++;});return due;}
+function srsGrade(word,known){const s=loadSrs(),t=todayIdx();const c=s[word]||{box:1};c.box=known?Math.min(5,(c.box||1)+1):1;c.due=t+SRS_DAYS[c.box];s[word]=c;saveSrs(s);}
+
 /* Generisches Multiple-Choice-Quiz */
 let quizCounter=0;
-function buildQuiz(container,questions,onDone){
+function buildQuiz(container,questions,onDone,tag){
   const state={};const uid=++quizCounter;
   questions.forEach((qu,i)=>{
     const box=el(`<div class="q" role="radiogroup"><div class="qt">${qu.type?`<span class="pill">${qu.type}</span> `:""}${i+1}. ${qu.q}</div></div>`);
@@ -1176,8 +1194,10 @@ function buildQuiz(container,questions,onDone){
       if(state[i]===qu.answer){correct++;}
       else if(state[i]!=null){opts[state[i]].classList.add("wrong");opts[state[i]].appendChild(el('<span class="optmark no">✗ deine Antwort</span>'));}
       box.querySelector(".expl").classList.add("show");
+      if(tag){ if(state[i]===qu.answer) resolveMistake(qu.q); else logWrong({q:qu.q,options:qu.options,answer:qu.answer,explain:qu.explain||"",type:qu.type||"",tag:tag}); }
     });
     const pct=Math.round(correct/questions.length*100);
+    if(tag)logAttempt(tag,pct);
     res.innerHTML="";
     res.appendChild(scoreBanner(correct,questions.length));
     btn.disabled=true;
@@ -1287,7 +1307,7 @@ function dashboard(){
   grid.appendChild(withClick(tile("listening","🎧 Listening","Choose a Response · Conversation · Announcement · Talk"),viewListening));
   grid.appendChild(withClick(tile("speaking","🎙️ Speaking","Listen and Repeat · Take an Interview"),viewSpeaking));
   grid.appendChild(withClick(tile("writing","✍️ Writing","Build a Sentence · Email · Academic Discussion"),viewWriting));
-  grid.appendChild(withClick(tile("vocab","🔤 Vokabeln","Academic / C1-Wortschatz als Karteikarten"),viewVocab));
+  grid.appendChild(withClick(tile("vocab","🔤 Vokabeln","SRS-Karteikarten · heute fällig: "+srsDueCount()),viewVocab));
   grid.appendChild(withClick(tile("grammar","📐 Grammatik","Gezielte Drills für Writing & Speaking"),viewGrammar));
   app.appendChild(grid);
 
@@ -1298,12 +1318,13 @@ function dashboard(){
   const mbrow=el('<div class="row" style="justify-content:center"></div>');
   const mb=el('<button class="btn ghost">🏁 Mini-Mock</button>');mb.onclick=viewMock;
   const eb=el('<button class="btn">🎓 Voll-Simulation</button>');eb.onclick=viewExam;
-  mbrow.appendChild(mb);mbrow.appendChild(eb);mock.appendChild(mbrow);
+  const stb=el('<button class="btn ghost">📊 Statistik</button>');stb.onclick=viewStats;
+  mbrow.appendChild(mb);mbrow.appendChild(eb);mbrow.appendChild(stb);mock.appendChild(mbrow);
   app.appendChild(mock);
 
   if(localStorage.getItem(PKEY)){
     const rb=el('<button class="back" style="color:#c0392b">Fortschritt zurücksetzen</button>');
-    rb.onclick=()=>{if(confirm("Allen gespeicherten Fortschritt löschen?")){localStorage.removeItem(PKEY);progress={};localStorage.removeItem(RKEY);rotation={};sessionSeen.clear();dashboard();}};
+    rb.onclick=()=>{if(confirm("Allen gespeicherten Fortschritt löschen (inkl. Verlauf, Fehler, Vokabel-SRS)?")){[PKEY,RKEY,HKEY,MKEY,SKEY].forEach(k=>localStorage.removeItem(k));progress={};rotation={};sessionSeen.clear();dashboard();}};
     app.appendChild(rb);
   }
   renderGlobalBar();
@@ -1350,14 +1371,14 @@ function viewReading(){
   const dlP=r.dailyLife;
   const dl=pickItem("dl@module",[{id:"dl_library",passage:dlP.passage,questions:dlP.questions},...dlP.items]);
   const c2=el(`<div class="card"><h2>${dlP.title}</h2><pre style="white-space:pre-wrap;font-family:inherit;font-size:14.5px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:12px">${dl.passage}</pre></div>`);
-  buildQuiz(c2,dl.questions,(pct)=>{total+=dl.questions.length;correctAll+=Math.round(pct/100*dl.questions.length);maybeScore();});
+  buildQuiz(c2,dl.questions,(pct)=>{total+=dl.questions.length;correctAll+=Math.round(pct/100*dl.questions.length);maybeScore();},"Reading");
   app.appendChild(c2);
 
   // Academic (aus Pool, Rotation)
   const acP=r.academic;
   const ac=pickItem("ac@module",[{id:"ac_heatisland",passage:acP.passage,questions:acP.questions},...acP.items]);
   const c3=el(`<div class="card"><h2>${acP.title}</h2><pre style="white-space:pre-wrap;font-family:inherit;font-size:14.5px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:12px">${ac.passage}</pre></div>`);
-  buildQuiz(c3,ac.questions,(pct)=>{total+=ac.questions.length;correctAll+=Math.round(pct/100*ac.questions.length);maybeScore();});
+  buildQuiz(c3,ac.questions,(pct)=>{total+=ac.questions.length;correctAll+=Math.round(pct/100*ac.questions.length);maybeScore();},"Reading");
   app.appendChild(c3);
 
   let scored=0;const need=3;
@@ -1381,7 +1402,7 @@ function viewListening(){
   const crPick=pickItems("cr@module",cr.items,4);
   const qs1=crPick.map(it=>({q:"Welche Antwort passt?",options:it.options,answer:it.answer,explain:it.explain}));
   crPick.forEach((it,i)=>{const b=audioButton(it.audio,`Äußerung ${i+1} anhören`,it.mp3);b.classList.add("sm");b.style.marginBottom="4px";c1.appendChild(b);});
-  buildQuiz(c1,qs1,(pct)=>maybeScore(qs1.length,pct));
+  buildQuiz(c1,qs1,(pct)=>maybeScore(qs1.length,pct),"Listening");
   app.appendChild(c1);
 
   // Conversation / Announcement / Talk (Pool + Rotation; Audio aus item.mp3, sonst Browser-Stimme)
@@ -1399,7 +1420,7 @@ function viewListening(){
     const scr=el(`<pre class="hidden" style="white-space:pre-wrap;font-family:inherit;font-size:14px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px">${item.script}</pre>`);
     tog.onclick=()=>{scr.classList.toggle("hidden");tog.textContent=scr.classList.contains("hidden")?"Skript anzeigen":"Skript verbergen";};
     c.appendChild(tog);c.appendChild(scr);
-    buildQuiz(c,item.questions,(pct)=>maybeScore(item.questions.length,pct));
+    buildQuiz(c,item.questions,(pct)=>maybeScore(item.questions.length,pct),"Listening");
     app.appendChild(c);
   });
   app.appendChild(backBtn());
@@ -1620,9 +1641,13 @@ function fmt(s){const m=Math.floor(s/60),x=s%60;return m+":"+(x<10?"0":"")+x;}
    ============================================================ */
 function viewVocab(){
   clear();app.appendChild(backBtn());
-  const deck=shuffle(CONTENT.vocab);
-  let i=0,known=0;
-  const card=el('<div class="card"><h2>🔤 Vokabeltrainer <span class="pill">Academic / C1</span></h2></div>');
+  // SRS (Leitner): heute faellige + neue Karten, niedrige Box zuerst, bis zu 20 je Sitzung
+  const s=loadSrs(),t=todayIdx();
+  const dueAll=CONTENT.vocab.filter(([w])=>{const c=s[w];return !c||c.due<=t;});
+  dueAll.sort((a,b)=>(((s[a[0]]&&s[a[0]].box)||1)-((s[b[0]]&&s[b[0]].box)||1)));
+  const totalDue=dueAll.length;
+  const deck=dueAll.slice(0,20);
+  const card=el(`<div class="card"><h2>🔤 Vokabeltrainer <span class="pill">SRS</span></h2><p class="muted small">Spaced Repetition: „Noch üben" bringt die Karte bald zurück, „Gewusst" verlängert das Intervall. Heute fällig: <b>${totalDue}</b> von ${CONTENT.vocab.length}.</p></div>`);
   const flash=el('<div class="flash"></div>');
   const counter=el('<div class="counter"></div>');
   const controls=el('<div class="row" style="justify-content:center;margin-top:14px"></div>');
@@ -1632,21 +1657,75 @@ function viewVocab(){
   controls.appendChild(no);controls.appendChild(reveal);controls.appendChild(yes);
   card.appendChild(flash);card.appendChild(counter);card.appendChild(controls);
   app.appendChild(card);
-  function show(){
-    if(i>=deck.length){
-      const pct=Math.round(known/deck.length*100);setBest("vocab",pct);
-      flash.innerHTML=`<div class="w">Fertig! 🎉</div><div class="ex">Du kanntest ${known} von ${deck.length} Wörtern (${pct}%).</div>`;
-      counter.textContent="";controls.innerHTML="";
-      const again=el('<button class="btn">Nochmal</button>');again.onclick=viewVocab;controls.appendChild(again);return;
-    }
-    const [w,de,ex]=deck[i];
-    flash.innerHTML=`<div class="w">${w}</div><div class="ex">${ex}</div><div class="de">→ ${de}</div>`;
-    counter.textContent=`Karte ${i+1} / ${deck.length}`;reveal.disabled=false;
+  if(!deck.length){
+    flash.innerHTML=`<div class="w">Alles wiederholt! 🎉</div><div class="ex">Heute sind keine Vokabeln mehr fällig. Komm morgen wieder oder übe einen anderen Bereich.</div>`;
+    counter.textContent="";controls.innerHTML="";
+    const bb=el('<button class="btn ghost">Zur Übersicht</button>');bb.onclick=dashboard;controls.appendChild(bb);return;
   }
-  reveal.onclick=()=>{flash.querySelector(".de").classList.add("show");reveal.disabled=true;};
-  yes.onclick=()=>{known++;i++;show();};
-  no.onclick=()=>{i++;show();};
-  show();
+  const queue=deck.slice();let known=0,done=0,current=null;
+  function next(){
+    if(!queue.length){
+      const pct=Math.round(known/Math.max(done,1)*100);setBest("vocab",pct);logAttempt("Vokabeln",pct);
+      flash.innerHTML=`<div class="w">Fertig! 🎉</div><div class="ex">${known} von ${done} gewusst (${pct}%). Heute noch fällig: ${srsDueCount()}.</div>`;
+      counter.textContent="";controls.innerHTML="";
+      const again=el('<button class="btn">Weiter üben</button>');again.onclick=viewVocab;controls.appendChild(again);
+      const bb=el('<button class="btn ghost">Übersicht</button>');bb.onclick=dashboard;controls.appendChild(bb);return;
+    }
+    current=queue.shift();
+    const [w,de,ex]=current;
+    flash.innerHTML=`<div class="w">${w}</div><div class="ex">${ex}</div><div class="de">→ ${de}</div>`;
+    counter.textContent=`heute fällig: ${totalDue} · bearbeitet: ${done}`;reveal.disabled=false;
+  }
+  reveal.onclick=()=>{const d=flash.querySelector(".de");if(d)d.classList.add("show");reveal.disabled=true;};
+  yes.onclick=()=>{srsGrade(current[0],true);known++;done++;next();};
+  no.onclick=()=>{srsGrade(current[0],false);queue.push(current);done++;next();};
+  next();
+}
+
+/* ============================================================
+   STATISTIK / SCHWÄCHEN / FEHLER-WIEDERHOLUNG
+   ============================================================ */
+function viewStats(){
+  clear();app.appendChild(backBtn());
+  app.appendChild(el('<div class="card"><h2>📊 Statistik & Schwächen</h2><p class="muted small">Fortschritt über die Zeit, deine schwächsten Bereiche und ein Speicher falsch beantworteter Fragen zum Wiederholen.</p></div>'));
+  const hist=loadArr(HKEY), mistakes=loadArr(MKEY);
+  // Bestwerte je Modul
+  const modCard=el('<div class="card"><h3 style="margin-top:0">Bestwerte je Bereich</h3></div>');
+  const kpi=el('<div class="kpi"></div>');
+  MODULES.forEach(m=>{const v=progress[m];kpi.appendChild(el(`<div class="b"><div class="n">${v!=null?v+'%':'–'}</div><div class="l">${m}</div></div>`));});
+  modCard.appendChild(kpi);app.appendChild(modCard);
+  // Schwäche-Diagnose: Ø je Bereich aus dem Verlauf
+  const byMod={};hist.forEach(h=>{(byMod[h.module]=byMod[h.module]||[]).push(h.pct);});
+  const weak=Object.keys(byMod).map(k=>({k:k,avg:Math.round(byMod[k].reduce((a,b)=>a+b,0)/byMod[k].length),n:byMod[k].length})).sort((a,b)=>a.avg-b.avg);
+  const wCard=el('<div class="card"><h3 style="margin-top:0">Schwächste Bereiche (Ø der Versuche)</h3></div>');
+  if(!weak.length)wCard.appendChild(el('<p class="muted small">Noch keine Daten – übe ein paar Aufgaben, dann erscheint hier deine Auswertung.</p>'));
+  else weak.forEach(w=>{const cls=w.avg>=80?'good':w.avg>=50?'mid':'low';const r=el(`<div class="result ${cls}" style="text-align:left;margin:6px 0;padding:9px 12px"></div>`);r.textContent=`${w.k}: Ø ${w.avg}% (${w.n} Versuche)`;wCard.appendChild(r);});
+  app.appendChild(wCard);
+  // Verlauf (letzte 12)
+  const recent=hist.slice(-12).reverse();
+  const hCard=el('<div class="card"><h3 style="margin-top:0">Verlauf (neueste zuerst)</h3></div>');
+  if(!recent.length)hCard.appendChild(el('<p class="muted small">Noch kein Verlauf.</p>'));
+  else recent.forEach(h=>{const d=new Date(h.t);const ds=d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});const row=el('<div class="small" style="display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:6px 2px"></div>');row.innerHTML=`<span>${ds} · ${h.module}</span><b>${h.pct}%</b>`;hCard.appendChild(row);});
+  app.appendChild(hCard);
+  // Fehler wiederholen
+  const mCard=el(`<div class="card"><h3 style="margin-top:0">Falsch beantwortete Fragen (${mistakes.length})</h3></div>`);
+  if(!mistakes.length)mCard.appendChild(el('<p class="muted small">Keine offenen Fehler gespeichert. 👍</p>'));
+  else{
+    mCard.appendChild(el('<p class="muted small">Wiederhole deine Fehler – richtig beantwortete verschwinden aus der Liste.</p>'));
+    const start=el('<button class="btn accent">Fehler wiederholen ▶</button>');
+    start.onclick=()=>{
+      clear();app.appendChild(backBtn());
+      app.appendChild(el('<div class="card"><h2>🔁 Fehler wiederholen</h2></div>'));
+      const c=el('<div class="card"></div>');
+      buildQuiz(c,mistakes.map(m=>({q:m.q,options:m.options,answer:m.answer,explain:m.explain,type:m.type})),null,"Wiederholung");
+      app.appendChild(c);
+      const back=el('<button class="btn ghost" style="margin-top:10px">← Zur Statistik</button>');back.onclick=viewStats;app.appendChild(back);
+    };
+    mCard.appendChild(start);
+    const clr=el('<button class="btn ghost sm" style="margin-left:8px">Liste leeren</button>');clr.onclick=()=>{if(confirm("Fehlerliste leeren?")){saveArr(MKEY,[]);viewStats();}};mCard.appendChild(clr);
+  }
+  app.appendChild(mCard);
+  app.appendChild(backBtn());
 }
 
 /* ============================================================
@@ -1659,7 +1738,7 @@ function viewGrammar(){
   let total=0,correctAll=0,scored=0;const need=gsets.length;
   gsets.forEach(set=>{
     const c=el(`<div class="card"><h3 style="margin-top:0">${set.title}</h3></div>`);
-    buildQuiz(c,set.items,(pct)=>{total+=set.items.length;correctAll+=Math.round(pct/100*set.items.length);scored++;if(scored>=need)setBest("grammar",Math.round(correctAll/total*100));});
+    buildQuiz(c,set.items,(pct)=>{total+=set.items.length;correctAll+=Math.round(pct/100*set.items.length);scored++;if(scored>=need)setBest("grammar",Math.round(correctAll/total*100));},"Grammatik");
     app.appendChild(c);
   });
   app.appendChild(backBtn());
@@ -1678,13 +1757,13 @@ function viewMock(){
   const mockAc=pickItem("ac@mock",[{id:"ac_heatisland",passage:CONTENT.reading.academic.passage,questions:CONTENT.reading.academic.questions},...CONTENT.reading.academic.items]);
   const rc=el(`<div class="card"><h3 style="margin-top:0">📖 Reading</h3><pre style="white-space:pre-wrap;font-family:inherit;font-size:14px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:12px">${mockAc.passage}</pre></div>`);
   const rq=mockAc.questions.slice(0,4);
-  buildQuiz(rc,rq,(pct)=>{total+=rq.length;correct+=Math.round(pct/100*rq.length);setBest("reading",Math.max(progress["reading"]||0,pct));tally();});
+  buildQuiz(rc,rq,(pct)=>{total+=rq.length;correct+=Math.round(pct/100*rq.length);setBest("reading",Math.max(progress["reading"]||0,pct));tally();},"Reading");
   app.appendChild(rc);
 
   // Listening (talk)
   const lc=el(`<div class="card"><h3 style="margin-top:0">🎧 Listening</h3></div>`);
   lc.appendChild(audioButton(CONTENT.listening.talk.script,"Anhören"));
-  buildQuiz(lc,CONTENT.listening.talk.questions,(pct)=>{total+=CONTENT.listening.talk.questions.length;correct+=Math.round(pct/100*CONTENT.listening.talk.questions.length);setBest("listening",Math.max(progress["listening"]||0,pct));tally();});
+  buildQuiz(lc,CONTENT.listening.talk.questions,(pct)=>{total+=CONTENT.listening.talk.questions.length;correct+=Math.round(pct/100*CONTENT.listening.talk.questions.length);setBest("listening",Math.max(progress["listening"]||0,pct));tally();},"Listening");
   app.appendChild(lc);
 
   // Writing (build a sentence x3)
@@ -1947,6 +2026,7 @@ function examResult(){
   const reach=total>=100;
   setBest("reading",Math.max(progress["reading"]||0,Math.round(r/30*100)));
   setBest("listening",Math.max(progress["listening"]||0,Math.round(l/30*100)));
+  logAttempt("Reading",Math.round(r/30*100));logAttempt("Listening",Math.round(l/30*100));logAttempt("Writing",Math.round(w/30*100));logAttempt("Speaking",Math.round(s/30*100));
   app.appendChild(el(`<div class="card">
     <h2>🎓 Ergebnis der Voll-Simulation</h2>
     <div class="kpi">
