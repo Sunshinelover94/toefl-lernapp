@@ -1,5 +1,13 @@
 /* Service Worker – cacht die App, damit sie nach dem ersten Laden offline läuft. */
-const CACHE = "toefl-lernapp-v4";
+const CACHE = "toefl-lernapp-v5";
+// Shell-Assets müssen vorhanden sein (Install scheitert sonst); Audios werden fehlertolerant nachgecacht.
+const CORE = [
+  "./",
+  "./index.html",
+  "./manifest.webmanifest",
+  "./icon-192.png",
+  "./icon-512.png"
+];
 const ASSETS = [
   "./",
   "./index.html",
@@ -28,7 +36,13 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  e.waitUntil((async () => {
+    const c = await caches.open(CACHE);
+    await c.addAll(CORE);                 // Shell zwingend – schlägt fehl, wenn etwas fehlt
+    const audio = ASSETS.filter((a) => a.startsWith("./audio/"));
+    await Promise.allSettled(audio.map((a) => c.add(a)));  // einzelne MP3s fehlertolerant
+    self.skipWaiting();
+  })());
 });
 
 self.addEventListener("activate", (e) => {
@@ -39,11 +53,17 @@ self.addEventListener("activate", (e) => {
   );
 });
 
-// Cache-first für eigene Dateien; Netz für alles andere.
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
-  e.respondWith(
-    caches.match(req).then((hit) => hit || fetch(req).catch(() => caches.match("./index.html")))
-  );
+  // HTML/Navigation: network-first (frischer Stand nach Deploy), Cache nur als Offline-Fallback.
+  if (req.mode === "navigate") {
+    e.respondWith(
+      fetch(req).then((r) => { const cp = r.clone(); caches.open(CACHE).then((c) => c.put("./index.html", cp)); return r; })
+        .catch(() => caches.match("./index.html"))
+    );
+    return;
+  }
+  // Statische Assets (Audio/Icons/Manifest): cache-first.
+  e.respondWith(caches.match(req).then((hit) => hit || fetch(req)));
 });

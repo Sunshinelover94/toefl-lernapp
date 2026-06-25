@@ -52,6 +52,9 @@ header.app p{margin:0;font-size:12.5px;opacity:.9}
 .opt.sel{border-color:var(--navy);background:#eef3fb}
 .opt.correct{border-color:var(--ok);background:var(--okbg)}
 .opt.wrong{border-color:var(--bad);background:var(--badbg)}
+.optmark{margin-left:8px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.optmark.ok{color:var(--ok)}
+.optmark.no{color:var(--bad)}
 .opt input{margin-right:9px}
 .expl{margin-top:8px;font-size:13.5px;padding:10px;border-radius:8px;background:var(--okbg);border:1px solid #cfe8d8;display:none}
 .expl.show{display:block}
@@ -64,6 +67,12 @@ textarea{min-height:170px;resize:vertical;line-height:1.5}
 .blank{display:inline-block;width:120px;margin:0 2px;padding:4px 6px;font-size:14px;border:1.5px solid var(--navy2);border-radius:7px}
 .blank.ok{border-color:var(--ok);background:var(--okbg)}
 .blank.no{border-color:var(--bad);background:var(--badbg)}
+.sol{font-size:13px;font-weight:700;margin:0 4px;white-space:nowrap}
+.sol.ok-mark{color:var(--ok)}
+.sol.no-mark{color:var(--bad)}
+.rev-line{text-align:left;margin:5px 0;padding:8px 10px;border-radius:8px;font-size:13.5px;font-weight:600}
+.rev-line.good{background:var(--okbg);color:var(--ok)}
+.rev-line.low{background:var(--badbg);color:var(--bad)}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
 .chip{display:inline-block;background:#eef3fb;border:1.5px solid var(--line);border-radius:9px;padding:7px 11px;font-size:14.5px;cursor:pointer;user-select:none}
 .chip:hover{border-color:var(--navy2)}
@@ -665,7 +674,9 @@ const EXAM = {
 
 /* ---------- Fortschritt (localStorage) ---------- */
 const PKEY="toefl_progress_v1";
-let progress = JSON.parse(localStorage.getItem(PKEY)||"{}");
+let progress;
+try{progress=JSON.parse(localStorage.getItem(PKEY)||"{}");}catch(e){progress={};localStorage.removeItem(PKEY);}
+if(!progress||typeof progress!=="object")progress={};  // gegen JSON.parse("5") o.ä. – sonst bricht progress[mod] später
 function saveProgress(){localStorage.setItem(PKEY,JSON.stringify(progress));renderGlobalBar();}
 function setBest(mod,pct){if(!progress[mod]||pct>progress[mod]){progress[mod]=pct;saveProgress();}}
 const MODULES=["reading","listening","speaking","writing","vocab","grammar"];
@@ -677,17 +688,19 @@ function renderGlobalBar(){
 /* ---------- Helfer ---------- */
 const app=document.getElementById("app");
 function el(html){const d=document.createElement("div");d.innerHTML=html.trim();return d.firstElementChild;}
-function clear(){stopAudio();app.innerHTML="";window.scrollTo(0,0);}
+function clear(){stopAudio();stopRecording();app.innerHTML="";window.scrollTo(0,0);}
 function backBtn(){const b=el('<button class="back">← Zurück zur Übersicht</button>');b.onclick=dashboard;return b;}
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
 /* Generisches Multiple-Choice-Quiz */
+let quizCounter=0;
 function buildQuiz(container,questions,onDone){
-  const state={};
+  const state={};const uid=++quizCounter;
   questions.forEach((qu,i)=>{
-    const box=el(`<div class="q"><div class="qt">${qu.type?`<span class="pill">${qu.type}</span> `:""}${i+1}. ${qu.q}</div></div>`);
+    const box=el(`<div class="q" role="radiogroup"><div class="qt">${qu.type?`<span class="pill">${qu.type}</span> `:""}${i+1}. ${qu.q}</div></div>`);
+    box.setAttribute("aria-label",(qu.type?qu.type+": ":"")+(i+1)+". "+qu.q);
     qu.options.forEach((op,oi)=>{
-      const o=el(`<label class="opt"><input type="radio" name="q${i}">${op}</label>`);
+      const o=el(`<label class="opt"><input type="radio" name="q${uid}_${i}">${op}</label>`);
       o.querySelector("input").onchange=()=>{state[i]=oi;box.querySelectorAll(".opt").forEach(x=>x.classList.remove("sel"));o.classList.add("sel");};
       box.appendChild(o);
     });
@@ -703,8 +716,9 @@ function buildQuiz(container,questions,onDone){
       const box=container.querySelectorAll(".q")[i];
       const opts=box.querySelectorAll(".opt");
       opts.forEach(o=>o.style.pointerEvents="none");
-      if(state[i]===qu.answer){opts[qu.answer].classList.add("correct");correct++;}
-      else{opts[qu.answer].classList.add("correct");if(state[i]!=null)opts[state[i]].classList.add("wrong");}
+      opts[qu.answer].classList.add("correct");opts[qu.answer].appendChild(el('<span class="optmark ok">✓ richtig</span>'));
+      if(state[i]===qu.answer){correct++;}
+      else if(state[i]!=null){opts[state[i]].classList.add("wrong");opts[state[i]].appendChild(el('<span class="optmark no">✗ deine Antwort</span>'));}
       box.querySelector(".expl").classList.add("show");
     });
     const pct=Math.round(correct/questions.length*100);
@@ -761,6 +775,12 @@ const AUDIO={
 };
 let currentAudio=null;
 function stopAudio(){try{if(currentAudio){currentAudio.pause();currentAudio.src="";currentAudio=null;}}catch(e){}if('speechSynthesis'in window)speechSynthesis.cancel();}
+// Aktive Aufnahme/Spracherkennung beenden (z. B. wenn der Nutzer waehrend einer Aufnahme die Seite verlaesst) – sonst bleibt das Mikrofon an.
+let activeRec=null,activeSR=null;
+function stopRecording(){
+  if(activeSR){try{activeSR.abort();}catch(e){}activeSR=null;}
+  if(activeRec){try{if(activeRec.mr&&activeRec.mr.state!=="inactive")activeRec.mr.stop();}catch(e){}try{activeRec.stream.getTracks().forEach(t=>t.stop());}catch(e){}activeRec=null;}
+}
 // Spielt eine Liste von MP3-Dateinamen nacheinander ab (z. B. Gespräch mit 2 Sprechern); bei Fehler -> Browser-Stimme.
 function playAudio(files,fallbackText,rate){
   stopAudio();
@@ -854,12 +874,18 @@ function viewReading(){
       const ans=cw.answers[ai++];
       const inp=el(`<input class="blank" type="text" placeholder="${ans[0]}…" autocomplete="off">`);
       inp.dataset.ans=ans;inputs.push(inp);p.appendChild(inp);
+      const sol=el('<span class="sol hidden"></span>');inp.sol=sol;p.appendChild(sol);
     }
   });
   c1.appendChild(p);
   const cb=el('<button class="btn accent sm">Prüfen</button>');
   const cres=el('<div></div>');
-  cb.onclick=()=>{let ok=0;inputs.forEach(inp=>{const good=inp.value.trim().toLowerCase()===inp.dataset.ans.toLowerCase();inp.classList.toggle("ok",good);inp.classList.toggle("no",!good);if(good)ok++;});cres.innerHTML="";cres.appendChild(scoreBanner(ok,inputs.length));total+=inputs.length;correctAll+=ok;cb.disabled=true;maybeScore();};
+  cb.onclick=()=>{let ok=0;inputs.forEach(inp=>{
+    const good=inp.value.trim().toLowerCase()===inp.dataset.ans.toLowerCase();
+    inp.classList.toggle("ok",good);inp.classList.toggle("no",!good);inp.readOnly=true;
+    if(inp.sol){if(good){inp.sol.textContent="✓";inp.sol.className="sol ok-mark";}else{inp.sol.textContent="✗ → "+inp.dataset.ans;inp.sol.className="sol no-mark";}}
+    if(good)ok++;
+  });cres.innerHTML="";cres.appendChild(scoreBanner(ok,inputs.length));total+=inputs.length;correctAll+=ok;cb.disabled=true;maybeScore();};
   c1.appendChild(cb);c1.appendChild(cres);
   app.appendChild(c1);
 
@@ -970,41 +996,74 @@ function viewSpeaking(){
   app.appendChild(backBtn());
 }
 
-// Listen-and-Repeat: aufnehmen + (optional) Spracherkennung & Abgleich
+// Listen-and-Repeat: Spracherkennung & Abgleich – als verlaesslicher Start/Stopp-Toggle
 function doRepeat(target,fb,btn,cb){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(SR){
-    const rec=new SR();rec.lang="en-US";rec.interimResults=false;rec.maxAlternatives=1;
-    fb.innerHTML='🎙️ <b>Sprich jetzt…</b>';btn.disabled=true;
-    rec.onresult=(e)=>{
-      const said=e.results[0][0].transcript;
-      const score=similarity(target,said);
-      const cls=score>=80?"good":score>=50?"mid":"low";
-      fb.innerHTML=`<div class="result ${cls}" style="margin-top:6px">Erkannt: „${said}"<br>Übereinstimmung: ${score}%</div>`;
-      btn.disabled=false;cb&&cb(score);
-    };
-    rec.onerror=(e)=>{fb.innerHTML=`<span class="muted">Spracherkennung nicht möglich (${e.error}). Du kannst stattdessen aufnehmen und selbst vergleichen.</span>`;btn.disabled=false;fallbackRecord();};
-    rec.onend=()=>{btn.disabled=false;};
-    try{rec.start();}catch(err){fallbackRecord();}
-  }else{fallbackRecord();}
-  function fallbackRecord(){doRecordPlayback(fb,btn);}
+  if(!SR){
+    // Kein Browser-Support (Firefox/Safari/iOS): keine Auto-Bewertung -> reine Aufnahme zum Selbstvergleich
+    fb.innerHTML='<span class="muted">Automatische Aussprache-Erkennung gibt es in diesem Browser nicht (am besten Chrome). Du kannst dich stattdessen aufnehmen und selbst vergleichen.</span>';
+    doRecordPlayback(fb,btn);
+    return;
+  }
+  const startHandler=btn.onclick, startLabel=btn.textContent;
+  let rec=new SR(), watchdog=null, finished=false;
+  rec.lang="en-US";rec.interimResults=false;rec.maxAlternatives=1;activeSR=rec;
+  function reset(){if(watchdog){clearTimeout(watchdog);watchdog=null;}if(activeSR===rec)activeSR=null;rec=null;btn.textContent=startLabel;btn.onclick=startHandler;}
+  function stopListening(){if(rec){try{rec.abort();}catch(e){}}}
+  function showNoSpeech(){fb.innerHTML='<span class="muted">Keine Sprache erkannt. Tippe erneut auf „● Aufnahme" und sprich den Satz – oder nimm dich auf und vergleiche selbst.</span>';}
+  rec.onresult=(e)=>{
+    finished=true;
+    const said=e.results[0][0].transcript;
+    const score=similarity(target,said);
+    const cls=score>=80?"good":score>=50?"mid":"low";
+    fb.innerHTML="";
+    const box=el(`<div class="result ${cls}" style="margin-top:6px"></div>`);
+    box.textContent=`Erkannt: „${said}" — Übereinstimmung: ${score}%`;  // textContent = injektionssicher
+    fb.appendChild(box);
+    cb&&cb(score);
+  };
+  rec.onerror=(e)=>{
+    finished=true;
+    if(e.error==="no-speech"){showNoSpeech();}
+    else if(e.error==="aborted"){/* vom Nutzer oder Watchdog – Meldung ist ggf. schon gesetzt */}
+    else if(e.error==="not-allowed"||e.error==="service-not-allowed"){fb.innerHTML='<span class="muted">Mikrofon ist nicht freigegeben. Bitte den Mikrofon-Zugriff für diese Seite erlauben.</span>';}
+    else if(e.error==="audio-capture"){fb.innerHTML='<span class="muted">Kein Mikrofon gefunden.</span>';}
+    else{fb.innerHTML=`<span class="muted">Spracherkennung nicht möglich (${e.error}).</span>`;}
+  };
+  rec.onend=()=>{reset();};   // einziger Aufraeumpunkt: feuert nach result/error/abort
+  fb.innerHTML='🎙️ <b>Sprich jetzt…</b> <span class="muted">(zum Abbrechen erneut tippen)</span>';
+  btn.textContent="■ Stopp";
+  btn.onclick=()=>{fb.innerHTML='<span class="muted">Abgebrochen.</span>';stopListening();};  // 2. Tipp = sofortiger Abbruch
+  try{
+    rec.start();
+    watchdog=setTimeout(()=>{if(!finished){showNoSpeech();stopListening();}},8000);  // gegen Haengen bei Stille
+  }catch(err){
+    fb.innerHTML='<span class="muted">Spracherkennung konnte nicht gestartet werden. Bitte erneut versuchen.</span>';
+    reset();
+  }
 }
-// Reine Audioaufnahme + Wiedergabe
+// Reine Audioaufnahme + Wiedergabe (Start/Stop-Toggle; erneute Aufnahme jederzeit moeglich)
 function doRecordPlayback(container,btn){
   if(!micSupported()){container.innerHTML='<span class="muted">Kein Mikrofon verfügbar – bitte über HTTPS/localhost öffnen.</span>';return;}
+  const startHandler=btn.onclick;          // Original-Start-Handler merken …
+  const startLabel=btn.textContent;
+  function restore(){btn.textContent=startLabel;btn.onclick=startHandler;}  // … und nach Stop wiederherstellen
+  btn.disabled=true;                       // nur kurz, bis das Mikrofon bereit ist
   navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
-    const mr=new MediaRecorder(stream);const chunks=[];
-    mr.ondataavailable=e=>chunks.push(e.data);
+    let mr;
+    try{mr=new MediaRecorder(stream);}catch(e){stream.getTracks().forEach(t=>t.stop());btn.disabled=false;restore();container.innerHTML='<span class="muted">Aufnahme wird von diesem Browser nicht unterstützt.</span>';return;}
+    const chunks=[];const cleanup=()=>{stream.getTracks().forEach(t=>t.stop());if(activeRec&&activeRec.mr===mr)activeRec=null;};
+    mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
     mr.onstop=()=>{
-      const blob=new Blob(chunks,{type:'audio/webm'});const url=URL.createObjectURL(blob);
-      const audio=el(`<audio controls src="${url}" style="width:100%;margin-top:8px"></audio>`);
-      container.innerHTML="";container.appendChild(audio);
-      stream.getTracks().forEach(t=>t.stop());
+      cleanup();restore();
+      if(chunks.length){const url=URL.createObjectURL(new Blob(chunks,{type:'audio/webm'}));container.innerHTML="";container.appendChild(el(`<audio controls src="${url}" style="width:100%;margin-top:8px"></audio>`));}
+      else container.innerHTML='<span class="muted">Keine Aufnahme erfasst – bitte erneut versuchen.</span>';
     };
-    mr.start();btn.disabled=true;const old=btn.textContent;btn.textContent="■ Stop";
-    btn.onclick=()=>{mr.stop();btn.disabled=false;btn.textContent=old;};
-    container.innerHTML='<span class="muted">🎙️ Aufnahme läuft… auf „Stop" drücken.</span>';
-  }).catch(err=>{container.innerHTML=`<span class="muted">Mikrofon-Zugriff verweigert (${err.name}).</span>`;});
+    mr.onerror=()=>{cleanup();restore();container.innerHTML='<span class="muted">Aufnahme abgebrochen. Bitte erneut versuchen.</span>';};
+    mr.start();activeRec={mr,stream};btn.disabled=false;btn.textContent="■ Stopp";
+    btn.onclick=()=>{if(mr.state!=="inactive")mr.stop();};   // Stop bricht sauber ab; danach restore() → neuer Start moeglich
+    container.innerHTML='<span class="muted">🎙️ Aufnahme läuft… auf „Stopp" drücken.</span>';
+  }).catch(err=>{btn.disabled=false;restore();container.innerHTML=`<span class="muted">Mikrofon-Zugriff nicht möglich (${err.name}). Bitte den Mikrofon-Zugriff für diese Seite erlauben.</span>`;});
 }
 // einfache Wort-Übereinstimmung
 function similarity(a,b){
@@ -1041,7 +1100,7 @@ function viewWriting(){
       const built=order.join(" ");const correct=words.join(" ");
       const ok=built===correct;
       res.innerHTML=`<div class="result ${ok?'good':'low'}">${ok?'✓ Richtig!':'✗ Noch nicht: '+sentence}</div>`;
-      bsScore+=ok?100:0;bsCount++;setBest("writing",Math.round(bsScore/bsCount));
+      bsScore+=ok?100:0;bsCount++;setBest("writing",Math.round(bsScore/bsCount));chk.disabled=true;
     };
     box.appendChild(answer);box.appendChild(pool);box.appendChild(chk);box.appendChild(res);
     c1.appendChild(box);
@@ -1078,7 +1137,11 @@ function writingTask(task){
   const model=el(`<div class="model">${pr.model}</div>`);
   mb.onclick=()=>{model.classList.toggle("show");mb.textContent=model.classList.contains("show")?"Musterlösung verbergen":"Musterlösung anzeigen";};
   const done=el('<button class="btn sm accent" style="margin-left:8px">Als geübt markieren</button>');
-  done.onclick=()=>{setBest("writing",Math.max(progress["writing"]||0,70));done.textContent="✓ gespeichert";done.disabled=true;};
+  done.onclick=()=>{
+    const n=ta.value.trim()?ta.value.trim().split(/\s+/).length:0;
+    if(n<60){done.textContent="Bitte erst ~60+ Wörter schreiben";setTimeout(()=>{done.textContent="Als geübt markieren";},1800);return;}
+    setBest("writing",Math.max(progress["writing"]||0,70));done.textContent="✓ gespeichert";done.disabled=true;
+  };
   card.appendChild(mb);card.appendChild(done);card.appendChild(model);
   return card;
 }
@@ -1145,13 +1208,13 @@ function viewMock(){
   // Reading (academic, 4 Fragen)
   const rc=el(`<div class="card"><h3 style="margin-top:0">📖 Reading</h3><pre style="white-space:pre-wrap;font-family:inherit;font-size:14px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:12px">${CONTENT.reading.academic.passage}</pre></div>`);
   const rq=CONTENT.reading.academic.questions.slice(0,4);
-  buildQuiz(rc,rq,(pct)=>{total+=rq.length;correct+=Math.round(pct/100*rq.length);tally();});
+  buildQuiz(rc,rq,(pct)=>{total+=rq.length;correct+=Math.round(pct/100*rq.length);setBest("reading",Math.max(progress["reading"]||0,pct));tally();});
   app.appendChild(rc);
 
   // Listening (talk)
   const lc=el(`<div class="card"><h3 style="margin-top:0">🎧 Listening</h3></div>`);
   lc.appendChild(audioButton(CONTENT.listening.talk.script,"Anhören"));
-  buildQuiz(lc,CONTENT.listening.talk.questions,(pct)=>{total+=CONTENT.listening.talk.questions.length;correct+=Math.round(pct/100*CONTENT.listening.talk.questions.length);tally();});
+  buildQuiz(lc,CONTENT.listening.talk.questions,(pct)=>{total+=CONTENT.listening.talk.questions.length;correct+=Math.round(pct/100*CONTENT.listening.talk.questions.length);setBest("listening",Math.max(progress["listening"]||0,pct));tally();});
   app.appendChild(lc);
 
   // Writing (build a sentence x3)
@@ -1164,7 +1227,7 @@ function viewMock(){
     const answer=el('<div class="answerbox"></div>');const pool=el('<div class="row"></div>');const order=[];
     shuffle(words).forEach(wd=>{const chip=el(`<span class="chip">${wd}</span>`);chip.onclick=()=>{order.push(wd);chip.classList.add("used");const a=el(`<span class="chip">${wd}</span>`);a.onclick=()=>{const idx=order.lastIndexOf(wd);if(idx>-1)order.splice(idx,1);a.remove();chip.classList.remove("used");};answer.appendChild(a);};pool.appendChild(chip);});
     const chk=el('<button class="btn accent sm" style="margin-top:10px">Prüfen</button>');const res=el('<div></div>');
-    chk.onclick=()=>{const ok=order.join(" ")===words.join(" ");res.innerHTML=`<div class="result ${ok?'good':'low'}">${ok?'✓ Richtig!':'✗ '+sentence}</div>`;wOk+=ok?1:0;wDone++;chk.disabled=true;if(wDone===sents.length){total+=sents.length;correct+=wOk;tally();}};
+    chk.onclick=()=>{const ok=order.join(" ")===words.join(" ");res.innerHTML=`<div class="result ${ok?'good':'low'}">${ok?'✓ Richtig!':'✗ '+sentence}</div>`;wOk+=ok?1:0;wDone++;chk.disabled=true;if(wDone===sents.length){total+=sents.length;correct+=wOk;setBest("writing",Math.max(progress["writing"]||0,Math.round(wOk/sents.length*100)));tally();}};
     box.appendChild(answer);box.appendChild(pool);box.appendChild(chk);box.appendChild(res);wc.appendChild(box);
   });
   app.appendChild(wc);
@@ -1191,7 +1254,6 @@ function viewMock(){
       <div class="result ${reach?'good':'mid'}" style="margin-top:14px">${reach?'🎯 Auf Kurs zum Mannheim-Ziel (≥100/C1)!':'Noch unter dem Mannheim-Ziel von 100/120 – dranbleiben!'}</div>
       <p class="muted small" style="margin-top:10px">Hinweis: nur objektive Aufgaben (Reading, Listening, Build-a-Sentence) fließen ein. Speaking und die freien Writing-Aufgaben werden im echten Test separat bewertet – übe sie in den jeweiligen Modulen mit Musterlösung & Checkliste.</p>`;
     result.classList.remove("hidden");
-    setBest("reading",Math.max(progress["reading"]||0,pct)); // grober Beitrag
     result.scrollIntoView({behavior:"smooth"});
   }
   app.appendChild(backBtn());
@@ -1201,12 +1263,13 @@ function viewMock(){
    VOLL-SIMULATION (viewExam) – adaptiv in Reading & Listening
    ============================================================ */
 let examUid=0, examInterval=null, examLeft=0;
-const examState={reading:0,listening:0,writing:0,speaking:0,rPath:"",lPath:""};
+const examState={reading:0,listening:0,writing:0,speaking:0,rPath:"",lPath:"",review:[]};
 
 function examMCQ(container,questions){
   examUid++; const uid=examUid, sel={};
   questions.forEach((qu,i)=>{
-    const box=el(`<div class="q"><div class="qt">${i+1}. ${qu.q}</div></div>`);
+    const box=el(`<div class="q" role="radiogroup"><div class="qt">${i+1}. ${qu.q}</div></div>`);
+    box.setAttribute("aria-label",(i+1)+". "+qu.q);
     qu.options.forEach((op,oi)=>{
       const o=el(`<label class="opt"><input type="radio" name="ex${uid}_${i}">${op}</label>`);
       o.querySelector("input").onchange=()=>{sel[i]=oi;box.querySelectorAll(".opt").forEach(x=>x.classList.remove("sel"));o.classList.add("sel");};
@@ -1214,7 +1277,10 @@ function examMCQ(container,questions){
     });
     container.appendChild(box);
   });
-  return ()=>questions.reduce((n,qu,i)=>n+(sel[i]===qu.answer?1:0),0);
+  return ()=>({
+    correct: questions.reduce((n,qu,i)=>n+(sel[i]===qu.answer?1:0),0),
+    items: questions.map((qu,i)=>({q:qu.q,options:qu.options,answer:qu.answer,chosen:sel[i],explain:qu.explain}))
+  });
 }
 function examSelfRate(container,label){
   const wrap=el(`<div class="rubric"><b>${label}</b><div class="muted small">1 = sehr unsicher · 5 = sehr sicher/flüssig</div><div class="row" style="margin-top:8px"></div></div>`);
@@ -1236,7 +1302,7 @@ function stopExamTimer(){if(examInterval){clearInterval(examInterval);examInterv
 
 function viewExam(){
   clear();
-  examState.reading=examState.listening=examState.writing=examState.speaking=0;examState.rPath="";examState.lPath="";
+  examState.reading=examState.listening=examState.writing=examState.speaking=0;examState.rPath="";examState.lPath="";examState.review=[];
   app.appendChild(el(`<div class="card">
     <h2>🎓 Voll-Simulation <span class="pill">prüfungsnah</span></h2>
     <p class="muted small">Ein durchgehender Testdurchlauf in der echten Reihenfolge <b>Reading → Listening → Writing → Speaking</b> mit Gesamt-Timer (~90 Min.) und Gesamt-Score (0–120 / Band / CEFR).</p>
@@ -1257,7 +1323,7 @@ function examReading1(){
   c.appendChild(el(`<pre style="white-space:pre-wrap;font-family:inherit;font-size:14.5px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:12px">${b.passage}</pre>`));
   const score=examMCQ(c,b.questions);app.appendChild(c);
   const next=el('<button class="btn accent">Weiter →</button>');
-  next.onclick=()=>{const correct=score(),frac=correct/b.questions.length;examState._rRoutF=frac;examReading2(frac);};
+  next.onclick=()=>{const res=score(),frac=res.correct/b.questions.length;examState.review.push({title:"📖 Reading – "+b.label,items:res.items});examReading2(frac);};
   app.appendChild(next);
 }
 function examReading2(routF){
@@ -1270,7 +1336,8 @@ function examReading2(routF){
   const score=examMCQ(c,b.questions);app.appendChild(c);
   const next=el('<button class="btn accent">Reading abschließen →</button>');
   next.onclick=()=>{
-    const frac=score()/b.questions.length;
+    const res=score(),frac=res.correct/b.questions.length;
+    examState.review.push({title:"📖 Reading – "+b.label,items:res.items});
     examState.reading = hard ? 30*(0.4*routF+0.6*frac) : 24*(0.4*routF+0.6*frac);
     examListening1();
   };
@@ -1285,7 +1352,7 @@ function examListening1(){
   c.appendChild(audioButton(b.script,"Anhören",[AUDIO.talkOpp]));
   const score=examMCQ(c,b.questions);app.appendChild(c);
   const next=el('<button class="btn accent">Weiter →</button>');
-  next.onclick=()=>{const frac=score()/b.questions.length;examListening2(frac);};
+  next.onclick=()=>{const res=score(),frac=res.correct/b.questions.length;examState.review.push({title:"🎧 Listening – "+b.label,items:res.items});examListening2(frac);};
   app.appendChild(next);
 }
 function examListening2(routF){
@@ -1298,7 +1365,8 @@ function examListening2(routF){
   const score=examMCQ(c,b.questions);app.appendChild(c);
   const next=el('<button class="btn accent">Listening abschließen →</button>');
   next.onclick=()=>{
-    const frac=score()/b.questions.length;
+    const res=score(),frac=res.correct/b.questions.length;
+    examState.review.push({title:"🎧 Listening – "+b.label,items:res.items});
     examState.listening = hard ? 30*(0.4*routF+0.6*frac) : 24*(0.4*routF+0.6*frac);
     examWriting();
   };
@@ -1408,6 +1476,25 @@ function examResult(){
     </div>
     <p class="muted small" style="margin-top:12px">Reading & Listening wurden <b>nach Blockschwierigkeit gewichtet</b>: Wer in den schweren Block geroutet wurde und ihn meistert, erreicht den höchsten Score; der leichte Pfad ist – wie im echten adaptiven Test – nach oben gedeckelt. Writing/Speaking beruhen auf deiner Selbsteinschätzung und sind als Orientierung zu verstehen, keine offizielle Bewertung.</p>
   </div>`));
+  // Auflösung Reading & Listening (wie im Einstieg versprochen)
+  if(examState.review&&examState.review.length){
+    const rev=el(`<div class="card"><h3 style="margin-top:0">📋 Auflösung – Reading &amp; Listening</h3><p class="muted small">Deine Antworten im Vergleich zur Lösung. (Writing &amp; Speaking laufen über Selbsteinschätzung mit Musterlösung.)</p></div>`);
+    examState.review.forEach(block=>{
+      rev.appendChild(el(`<h4 style="margin:14px 0 4px;color:var(--navy)">${block.title}</h4>`));
+      block.items.forEach((it,i)=>{
+        const ok=it.chosen===it.answer;
+        const yours=it.chosen!=null?it.options[it.chosen]:"— (keine Antwort)";
+        const q=el(`<div class="q" style="margin:8px 0"><div class="qt">${i+1}. ${it.q}</div></div>`);
+        const yourLine=el(`<div class="rev-line ${ok?'good':'low'}"></div>`);
+        yourLine.textContent=`${ok?'✓':'✗'} Deine Antwort: ${yours}`;
+        q.appendChild(yourLine);
+        if(!ok){const sol=el('<div class="rev-line good"></div>');sol.textContent="✓ Richtig: "+it.options[it.answer];q.appendChild(sol);}
+        if(it.explain)q.appendChild(el(`<div class="expl show">${it.explain}</div>`));
+        rev.appendChild(q);
+      });
+    });
+    app.appendChild(rev);
+  }
   const again=el('<button class="btn">Nochmal simulieren</button>');again.onclick=viewExam;
   app.appendChild(again);app.appendChild(backBtn());
 }
